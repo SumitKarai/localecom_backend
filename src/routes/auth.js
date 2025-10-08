@@ -115,21 +115,9 @@ router.get('/google/callback',
       console.log('🚀 Google callback successful for user:', req.user.profile.name);
       const token = generateToken(req.user);
       
-      // For development, you can return JSON instead of redirect
-      if (process.env.NODE_ENV === 'development') {
-        res.json({
-          success: true,
-          token: token,
-          user: {
-            id: req.user._id,
-            name: req.user.profile.name,
-            email: req.user.email,
-            role: req.user.role
-          }
-        });
-      } else {
-        res.redirect(`${process.env.FRONTEND_URL}/?token=${token}`);
-      }
+      // Redirect to frontend with token
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      res.redirect(`${frontendUrl}/?token=${token}`);
     } catch (error) {
       console.error('❌ Error in callback:', error);
       res.status(500).json({ error: 'Authentication failed' });

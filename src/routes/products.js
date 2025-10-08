@@ -10,26 +10,34 @@ router.get('/', async (req, res) => {
     
     // If location parameters provided, add geospatial query
     if (lat && lng && maxDistance) {
-      const latitude = parseFloat(lat);
-      const longitude = parseFloat(lng);
-      const maxDistanceKm = parseFloat(maxDistance);
-      
-      // First get stores within radius
-      const Store = require('../models/Store');
-      const nearbyStores = await Store.find({
-        location: {
-          $near: {
-            $geometry: {
-              type: 'Point',
-              coordinates: [longitude, latitude]
-            },
-            $maxDistance: maxDistanceKm * 1000 // Convert km to meters
+      try {
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lng);
+        const maxDistanceKm = parseFloat(maxDistance);
+        
+        // First get stores within radius
+        const Store = require('../models/Store');
+        const nearbyStores = await Store.find({
+          location: {
+            $near: {
+              $geometry: {
+                type: 'Point',
+                coordinates: [longitude, latitude]
+              },
+              $maxDistance: maxDistanceKm * 1000 // Convert km to meters
+            }
           }
+        });
+        
+        const storeIds = nearbyStores.map(store => store._id);
+        if (storeIds.length > 0) {
+          query = { storeId: { $in: storeIds } };
         }
-      });
-      
-      const storeIds = nearbyStores.map(store => store._id);
-      query = { storeId: { $in: storeIds } };
+        // If no nearby stores found, show all products (fallback)
+      } catch (locationError) {
+        console.log('Location filtering failed, showing all products:', locationError.message);
+        // Continue with empty query to show all products
+      }
     }
     
     const products = await Product.find(query)
