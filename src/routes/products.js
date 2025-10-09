@@ -5,11 +5,16 @@ const router = express.Router();
 // Get all products with optional location filtering
 router.get('/', async (req, res) => {
   try {
-    const { lat, lng, maxDistance } = req.query;
+    const { lat, lng, maxDistance, storeId } = req.query;
     let query = {};
     
-    // If location parameters provided, add geospatial query
-    if (lat && lng && maxDistance) {
+    // If storeId provided, filter by specific store
+    if (storeId) {
+      query.storeId = storeId;
+    }
+    
+    // If location parameters provided and no specific storeId, add geospatial query
+    if (lat && lng && maxDistance && !storeId) {
       try {
         const latitude = parseFloat(lat);
         const longitude = parseFloat(lng);
@@ -31,12 +36,12 @@ router.get('/', async (req, res) => {
         
         const storeIds = nearbyStores.map(store => store._id);
         if (storeIds.length > 0) {
-          query = { storeId: { $in: storeIds } };
+          query.storeId = { $in: storeIds };
         }
         // If no nearby stores found, show all products (fallback)
       } catch (locationError) {
         console.log('Location filtering failed, showing all products:', locationError.message);
-        // Continue with empty query to show all products
+        // Continue with existing query
       }
     }
     
