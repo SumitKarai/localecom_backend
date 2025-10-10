@@ -10,8 +10,14 @@ const storeSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  description: String,
-  category: String,
+  description: {
+    type: String,
+    required: true
+  },
+  category: {
+    type: String,
+    required: true
+  },
   location: {
     type: {
       type: String,
@@ -20,18 +26,50 @@ const storeSchema = new mongoose.Schema({
     },
     coordinates: {
       type: [Number],
-      default: [0, 0]
+      required: true
     }
   },
-  address: String,
-  phone: String,
+  address: {
+    type: String,
+    required: true
+  },
+  city: {
+    type: String,
+    required: true
+  },
+  state: {
+    type: String,
+    required: true
+  },
+  pincode: {
+    type: String,
+    required: true
+  },
+  phone: {
+    type: String,
+    required: true
+  },
+  whatsapp: {
+    type: String,
+    required: true
+  },
   email: String,
   logo: String,
+  banner: String,
+
+  deliveryRadius: {
+    type: Number,
+    default: 5 // in kilometers
+  },
   isActive: {
     type: Boolean,
     default: true
   },
   rating: {
+    type: Number,
+    default: 0
+  },
+  totalReviews: {
     type: Number,
     default: 0
   },
@@ -43,6 +81,13 @@ const storeSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Indexes
 storeSchema.index({ location: '2dsphere' });
+storeSchema.index({ category: 1 });
+storeSchema.index({ isActive: 1 });
+storeSchema.index({ ownerId: 1 });
+storeSchema.index({ city: 1, state: 1 });
+storeSchema.index({ state: 1 });
+storeSchema.index({ pincode: 1 });
 
 module.exports = mongoose.model('Store', storeSchema);

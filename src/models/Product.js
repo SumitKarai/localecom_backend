@@ -30,6 +30,14 @@ const productSchema = new mongoose.Schema({
     }
   },
   tags: [String],
+  rating: {
+    type: Number,
+    default: 0
+  },
+  totalReviews: {
+    type: Number,
+    default: 0
+  },
   isActive: {
     type: Boolean,
     default: true

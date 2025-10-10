@@ -47,6 +47,7 @@ app.use('/api/profile', require('./routes/profile'));
 app.use('/api/stores', require('./routes/storesPublic'));
 app.use('/api/stores/manage', require('./routes/stores'));
 app.use('/api/products', require('./routes/products'));
+app.use('/api/reviews', require('./routes/reviews'));
 } catch (error) {
   console.error('❌ Error loading routes:', error);
 }
