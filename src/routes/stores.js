@@ -241,6 +241,66 @@ router.get('/cities/:state', async (req, res) => {
   }
 });
 
+// Get stores with progressive distance expansion
+router.get('/', async (req, res) => {
+  try {
+    const { lat, lng, city, state, category, search } = req.query;
+    let stores = [];
+    let actualRadius = null;
+    
+    // GPS-based search with progressive expansion
+    if (lat && lng) {
+      const latitude = parseFloat(lat);
+      const longitude = parseFloat(lng);
+      const distances = [2, 5, 10, 20, 50]; // Progressive distances in km
+      
+      for (const distance of distances) {
+        const query = {
+          isActive: true,
+          location: {
+            $near: {
+              $geometry: {
+                type: 'Point',
+                coordinates: [longitude, latitude]
+              },
+              $maxDistance: distance * 1000 // Convert km to meters
+            }
+          }
+        };
+        
+        if (city) query.city = city;
+        if (state) query.state = state;
+        if (category) query.category = category;
+        if (search) query.name = new RegExp(search, 'i');
+        
+        stores = await Store.find(query)
+          .select('name description category address city state phone whatsapp location rating totalReviews')
+          .limit(100);
+          
+        actualRadius = distance;
+        if (stores.length >= 20) break; // Stop when we have enough stores
+      }
+    }
+    // City/State-based search
+    else {
+      const query = { isActive: true };
+      if (city) query.city = city;
+      if (state) query.state = state;
+      if (category) query.category = category;
+      if (search) query.name = new RegExp(search, 'i');
+      
+      stores = await Store.find(query)
+        .select('name description category address city state phone whatsapp location rating totalReviews')
+        .limit(100);
+    }
+    
+    res.json({ stores, actualRadius });
+  } catch (error) {
+    console.error('Error fetching stores:', error);
+    res.status(500).json({ error: 'Failed to fetch stores' });
+  }
+});
+
 // Search stores by city/state
 router.get('/search/location', async (req, res) => {
   try {
