@@ -14,11 +14,7 @@ const reviewSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product'
   },
-  orderId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Order',
-    required: false
-  },
+
   rating: {
     type: Number,
     min: 1,
@@ -54,7 +50,8 @@ const reviewSchema = new mongoose.Schema({
 // Indexes
 reviewSchema.index({ storeId: 1, createdAt: -1 });
 reviewSchema.index({ productId: 1, createdAt: -1 });
-reviewSchema.index({ userId: 1, orderId: 1 }, { unique: true });
+reviewSchema.index({ userId: 1, storeId: 1 }, { unique: true, sparse: true });
+reviewSchema.index({ userId: 1, productId: 1 }, { unique: true, sparse: true });
 reviewSchema.index({ rating: 1 });
 
 module.exports = mongoose.model('Review', reviewSchema);

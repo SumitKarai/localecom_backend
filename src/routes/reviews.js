@@ -67,45 +67,7 @@ router.get('/product/:productId', async (req, res) => {
   }
 });
 
-// Add review (verified purchase)
-router.post('/',
-  passport.authenticate('jwt', { session: false }),
-  async (req, res) => {
-    try {
-      const { storeId, productId, orderId, rating, comment, reviewType } = req.body;
-      
-      // Check if user already reviewed this order
-      const existingReview = await Review.findOne({ userId: req.user._id, orderId });
-      if (existingReview) {
-        return res.status(400).json({ error: 'You have already reviewed this order' });
-      }
 
-      const review = new Review({
-        userId: req.user._id,
-        storeId,
-        productId,
-        orderId,
-        rating,
-        comment,
-        reviewType,
-        isVerifiedPurchase: true
-      });
-
-      await review.save();
-      
-      // Update store/product rating
-      if (reviewType === 'store' && storeId) {
-        await updateStoreRating(storeId);
-      } else if (reviewType === 'product' && productId) {
-        await updateProductRating(productId);
-      }
-      
-      res.status(201).json({ message: 'Review added successfully', review });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to add review' });
-    }
-  }
-);
 
 // Add general review (any authenticated user)
 router.post('/general',
@@ -114,8 +76,23 @@ router.post('/general',
     try {
       const { storeId, productId, rating, comment, reviewType } = req.body;
       
-      // Check if user already reviewed this store/product generally
-      const query = { userId: req.user._id, reviewType, orderId: { $exists: false } };
+      console.log('Review request:', { storeId, productId, rating, comment, reviewType, userId: req.user._id });
+      
+      // Validate required fields
+      if (!rating || !reviewType) {
+        return res.status(400).json({ error: 'Rating and review type are required' });
+      }
+      
+      if (reviewType === 'store' && !storeId) {
+        return res.status(400).json({ error: 'Store ID is required for store reviews' });
+      }
+      
+      if (reviewType === 'product' && !productId) {
+        return res.status(400).json({ error: 'Product ID is required for product reviews' });
+      }
+      
+      // Check if user already reviewed this store/product
+      const query = { userId: req.user._id, reviewType };
       if (reviewType === 'store') query.storeId = storeId;
       if (reviewType === 'product') query.productId = productId;
       
@@ -124,17 +101,21 @@ router.post('/general',
         return res.status(400).json({ error: 'You have already reviewed this ' + reviewType });
       }
 
-      const review = new Review({
+      const reviewData = {
         userId: req.user._id,
-        storeId,
-        productId,
         rating,
-        comment,
+        comment: comment || '',
         reviewType,
         isVerifiedPurchase: false
-      });
-
+      };
+      
+      if (reviewType === 'store') reviewData.storeId = storeId;
+      if (reviewType === 'product') reviewData.productId = productId;
+      
+      const review = new Review(reviewData);
       await review.save();
+      
+      console.log('Review saved successfully:', review._id);
       
       // Update store/product rating
       if (reviewType === 'store' && storeId) {
@@ -145,7 +126,8 @@ router.post('/general',
       
       res.status(201).json({ message: 'Review added successfully', review });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to add review' });
+      console.error('Review creation error:', error);
+      res.status(500).json({ error: 'Failed to add review: ' + error.message });
     }
   }
 );
@@ -185,25 +167,35 @@ router.post('/:reviewId/helpful',
 
 // Helper function to update store rating
 async function updateStoreRating(storeId) {
-  const reviews = await Review.find({ storeId, reviewType: 'store' });
-  if (reviews.length > 0) {
-    const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-    await Store.findByIdAndUpdate(storeId, {
-      rating: Math.round(avgRating * 10) / 10,
-      totalReviews: reviews.length
-    });
+  try {
+    const reviews = await Review.find({ storeId, reviewType: 'store' });
+    if (reviews.length > 0) {
+      const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+      await Store.findByIdAndUpdate(storeId, {
+        rating: Math.round(avgRating * 10) / 10,
+        totalReviews: reviews.length
+      });
+      console.log('Store rating updated:', storeId, avgRating);
+    }
+  } catch (error) {
+    console.error('Error updating store rating:', error);
   }
 }
 
 // Helper function to update product rating
 async function updateProductRating(productId) {
-  const reviews = await Review.find({ productId, reviewType: 'product' });
-  if (reviews.length > 0) {
-    const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-    await Product.findByIdAndUpdate(productId, {
-      rating: Math.round(avgRating * 10) / 10,
-      totalReviews: reviews.length
-    });
+  try {
+    const reviews = await Review.find({ productId, reviewType: 'product' });
+    if (reviews.length > 0) {
+      const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+      await Product.findByIdAndUpdate(productId, {
+        rating: Math.round(avgRating * 10) / 10,
+        totalReviews: reviews.length
+      });
+      console.log('Product rating updated:', productId, avgRating);
+    }
+  } catch (error) {
+    console.error('Error updating product rating:', error);
   }
 }
 

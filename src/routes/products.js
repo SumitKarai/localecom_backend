@@ -1,5 +1,6 @@
 const express = require('express');
 const Product = require('../models/Product');
+const Store = require('../models/Store');
 const router = express.Router();
 
 // Get all products with filtering
@@ -94,6 +95,60 @@ router.get('/', async (req, res) => {
       .sort({ createdAt: -1 });
     
     res.json({ products });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all stores selling a specific product
+router.get('/:productId/stores', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    // Find all products with the same name as the requested product
+    const requestedProduct = await Product.findById(productId);
+    if (!requestedProduct) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    // Find all products with the same name across different stores
+    const similarProducts = await Product.find({
+      name: new RegExp(`^${requestedProduct.name}$`, 'i')
+    }).populate('storeId');
+    
+    // Group by store and format response
+    const storesWithProduct = similarProducts.map(product => ({
+      store: {
+        _id: product.storeId._id,
+        name: product.storeId.name,
+        city: product.storeId.city,
+        state: product.storeId.state,
+        phone: product.storeId.phone,
+        whatsapp: product.storeId.whatsapp,
+        rating: product.storeId.rating,
+        totalReviews: product.storeId.totalReviews
+      },
+      price: product.price,
+      inventory: product.inventory
+    }));
+    
+    res.json({ stores: storesWithProduct });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single product details
+router.get('/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const product = await Product.findById(productId).populate('storeId', 'name');
+    
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    res.json({ product });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

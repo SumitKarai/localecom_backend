@@ -56,6 +56,43 @@ const storeSchema = new mongoose.Schema({
   email: String,
   logo: String,
   banner: String,
+  
+  // Store Customization
+  theme: {
+    type: String,
+    enum: ['blue', 'green', 'red', 'purple', 'orange', 'pink', 'black', 'brown'],
+    default: 'blue'
+  },
+  primaryColor: {
+    type: String,
+    default: '#3B82F6' // blue-600
+  },
+  secondaryColor: {
+    type: String,
+    default: '#1F2937' // gray-800
+  },
+  
+  // Enhanced Store Information
+  tagline: String,
+  aboutUs: String,
+  services: [String],
+  workingHours: {
+    monday: { open: String, close: String, closed: { type: Boolean, default: false } },
+    tuesday: { open: String, close: String, closed: { type: Boolean, default: false } },
+    wednesday: { open: String, close: String, closed: { type: Boolean, default: false } },
+    thursday: { open: String, close: String, closed: { type: Boolean, default: false } },
+    friday: { open: String, close: String, closed: { type: Boolean, default: false } },
+    saturday: { open: String, close: String, closed: { type: Boolean, default: false } },
+    sunday: { open: String, close: String, closed: { type: Boolean, default: true } }
+  },
+  socialMedia: {
+    facebook: String,
+    instagram: String,
+    twitter: String,
+    youtube: String
+  },
+  gallery: [String], // Array of image URLs
+  features: [String], // Store highlights/features
 
   deliveryRadius: {
     type: Number,
