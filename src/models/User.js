@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['customer', 'seller', 'freelancer', 'hybrid'],
+    enum: ['customer', 'seller', 'freelancer', 'restaurant'],
     default: 'customer'
   },
   profile: {
@@ -34,7 +34,9 @@ const userSchema = new mongoose.Schema({
         default: [0, 0]
       }
     },
-    address: String
+    address: String,
+    city: String,
+    state: String
   },
   isActive: {
     type: Boolean,

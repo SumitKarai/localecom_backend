@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const storeSchema = new mongoose.Schema({
+const restaurantSchema = new mongoose.Schema({
   ownerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -14,15 +14,11 @@ const storeSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  category: {
+  cuisineType: [{
     type: String,
-    required: true
-  },
-  businessType: {
-    type: String,
-    enum: ['store', 'restaurant', 'service'],
-    default: 'store'
-  },
+    required: true,
+    enum: ['Indian', 'Chinese', 'Italian', 'Continental', 'Mexican', 'Thai', 'Japanese', 'Mediterranean', 'American', 'Fast Food', 'Street Food', 'Vegetarian', 'Vegan', 'Seafood', 'BBQ', 'Desserts', 'Other']
+  }],
   location: {
     type: {
       type: String,
@@ -62,7 +58,23 @@ const storeSchema = new mongoose.Schema({
   logo: String,
   banner: String,
   
-  // Store Customization
+  // Restaurant-specific fields
+  diningOptions: [{
+    type: String,
+    enum: ['Dine-in', 'Takeaway', 'Delivery', 'Drive-through']
+  }],
+  priceRange: {
+    type: String,
+    enum: ['$', '$$', '$$$', '$$$$'],
+    default: '$$'
+  },
+  averageCookingTime: {
+    type: Number,
+    default: 30 // in minutes
+  },
+  specialties: [String],
+  
+  // Theme and customization
   theme: {
     type: String,
     enum: ['blue', 'green', 'red', 'purple', 'orange', 'pink', 'black', 'brown'],
@@ -70,17 +82,16 @@ const storeSchema = new mongoose.Schema({
   },
   primaryColor: {
     type: String,
-    default: '#3B82F6' // blue-600
+    default: '#3B82F6'
   },
   secondaryColor: {
     type: String,
-    default: '#1F2937' // gray-800
+    default: '#1F2937'
   },
   
-  // Enhanced Store Information
+  // Restaurant information
   tagline: String,
   aboutUs: String,
-  services: [String],
   workingHours: {
     monday: { open: String, close: String, closed: { type: Boolean, default: false } },
     tuesday: { open: String, close: String, closed: { type: Boolean, default: false } },
@@ -96,34 +107,25 @@ const storeSchema = new mongoose.Schema({
     twitter: String,
     youtube: String
   },
-  gallery: [String], // Array of image URLs
-  features: [String], // Store highlights/features
-  
-  // Restaurant-specific fields
-  restaurantInfo: {
-    cuisineType: [String], // ['Indian', 'Chinese', 'Italian']
-    diningOptions: [String], // ['Dine-in', 'Takeaway', 'Delivery']
-    priceRange: {
-      type: String,
-      enum: ['$', '$$', '$$$', '$$$$']
-    },
-    averageCookingTime: Number, // in minutes
-    specialties: [String]
-  },
+  gallery: [String],
+  features: [String],
   
   // QR Menu settings
   qrMenu: {
     enabled: {
       type: Boolean,
-      default: false
+      default: true
     },
-    qrCode: String, // Generated QR code URL
-    menuSlug: String // Unique slug for menu access
+    qrCode: String,
+    menuSlug: {
+      type: String,
+      unique: true
+    }
   },
-
+  
   deliveryRadius: {
     type: Number,
-    default: 5 // in kilometers
+    default: 5
   },
   isActive: {
     type: Boolean,
@@ -146,15 +148,11 @@ const storeSchema = new mongoose.Schema({
 });
 
 // Indexes
-storeSchema.index({ location: '2dsphere' });
-storeSchema.index({ category: 1 });
-storeSchema.index({ isActive: 1 });
-storeSchema.index({ ownerId: 1 });
-storeSchema.index({ city: 1, state: 1 });
-storeSchema.index({ state: 1 });
-storeSchema.index({ pincode: 1 });
-storeSchema.index({ businessType: 1 });
-storeSchema.index({ 'restaurantInfo.cuisineType': 1 });
-storeSchema.index({ 'qrMenu.menuSlug': 1 });
+restaurantSchema.index({ location: '2dsphere' });
+restaurantSchema.index({ cuisineType: 1 });
+restaurantSchema.index({ isActive: 1 });
+restaurantSchema.index({ ownerId: 1 });
+restaurantSchema.index({ city: 1, state: 1 });
+restaurantSchema.index({ 'qrMenu.menuSlug': 1 });
 
-module.exports = mongoose.model('Store', storeSchema);
+module.exports = mongoose.model('Restaurant', restaurantSchema);

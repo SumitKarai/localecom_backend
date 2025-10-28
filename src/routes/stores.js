@@ -148,7 +148,9 @@ router.get('/:storeId/products',
 // Get store categories
 router.get('/categories', async (req, res) => {
   try {
-    const categories = [
+    const { businessType } = req.query;
+    
+    const storeCategories = [
       'Grocery & Food',
       'Electronics',
       'Clothing & Fashion',
@@ -166,6 +168,54 @@ router.get('/categories', async (req, res) => {
       'Flowers & Gifts',
       'Other'
     ];
+    
+    const restaurantCategories = [
+      'Fast Food',
+      'Fine Dining',
+      'Casual Dining',
+      'Cafe & Coffee',
+      'Bakery & Desserts',
+      'Street Food',
+      'Pizza & Italian',
+      'Chinese & Asian',
+      'Indian Cuisine',
+      'Continental',
+      'Vegetarian',
+      'Seafood',
+      'BBQ & Grill',
+      'Juice & Smoothies',
+      'Ice Cream',
+      'Other'
+    ];
+    
+    const serviceCategories = [
+      'Home Services',
+      'Beauty & Wellness',
+      'Fitness & Health',
+      'Education & Tutoring',
+      'Tech & IT Services',
+      'Repair & Maintenance',
+      'Cleaning Services',
+      'Photography',
+      'Event Planning',
+      'Transportation',
+      'Legal Services',
+      'Consulting',
+      'Other'
+    ];
+    
+    let categories;
+    switch(businessType) {
+      case 'restaurant':
+        categories = restaurantCategories;
+        break;
+      case 'service':
+        categories = serviceCategories;
+        break;
+      default:
+        categories = storeCategories;
+    }
+    
     res.json({ categories });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch categories' });
@@ -244,7 +294,7 @@ router.get('/cities/:state', async (req, res) => {
 // Get stores with progressive distance expansion
 router.get('/', async (req, res) => {
   try {
-    const { lat, lng, city, state, category, search } = req.query;
+    const { lat, lng, city, state, category, search, businessType } = req.query;
     let stores = [];
     let actualRadius = null;
     
@@ -271,6 +321,7 @@ router.get('/', async (req, res) => {
         if (city) query.city = city;
         if (state) query.state = state;
         if (category) query.category = category;
+        if (businessType) query.businessType = businessType;
         if (search) query.name = new RegExp(search, 'i');
         
         stores = await Store.find(query)
@@ -287,6 +338,7 @@ router.get('/', async (req, res) => {
       if (city) query.city = city;
       if (state) query.state = state;
       if (category) query.category = category;
+      if (businessType) query.businessType = businessType;
       if (search) query.name = new RegExp(search, 'i');
       
       stores = await Store.find(query)
@@ -304,12 +356,13 @@ router.get('/', async (req, res) => {
 // Search stores by city/state
 router.get('/search/location', async (req, res) => {
   try {
-    const { city, state, category } = req.query;
+    const { city, state, category, businessType } = req.query;
     const query = { isActive: true };
     
     if (city) query.city = new RegExp(city, 'i');
     if (state) query.state = new RegExp(state, 'i');
     if (category) query.category = category;
+    if (businessType) query.businessType = businessType;
     
     const stores = await Store.find(query)
       .select('name description category address city state phone location')

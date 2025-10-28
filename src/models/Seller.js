@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 
-const storeSchema = new mongoose.Schema({
+const sellerSchema = new mongoose.Schema({
   ownerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-  name: {
+  storeName: {
     type: String,
     required: true
   },
@@ -16,12 +16,8 @@ const storeSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    required: true
-  },
-  businessType: {
-    type: String,
-    enum: ['store', 'restaurant', 'service'],
-    default: 'store'
+    required: true,
+    enum: ['Grocery & Food', 'Electronics', 'Clothing & Fashion', 'Pharmacy & Health', 'Books & Stationery', 'Home & Garden', 'Sports & Fitness', 'Beauty & Personal Care', 'Toys & Games', 'Automotive', 'Jewelry & Accessories', 'Pet Supplies', 'Hardware & Tools', 'Bakery & Sweets', 'Flowers & Gifts', 'Other']
   },
   location: {
     type: {
@@ -62,7 +58,16 @@ const storeSchema = new mongoose.Schema({
   logo: String,
   banner: String,
   
-  // Store Customization
+  // Store-specific fields
+  storeType: {
+    type: String,
+    enum: ['Physical Store', 'Online Store', 'Both'],
+    default: 'Physical Store'
+  },
+  businessLicense: String,
+  gstNumber: String,
+  
+  // Theme and customization
   theme: {
     type: String,
     enum: ['blue', 'green', 'red', 'purple', 'orange', 'pink', 'black', 'brown'],
@@ -70,14 +75,14 @@ const storeSchema = new mongoose.Schema({
   },
   primaryColor: {
     type: String,
-    default: '#3B82F6' // blue-600
+    default: '#3B82F6'
   },
   secondaryColor: {
     type: String,
-    default: '#1F2937' // gray-800
+    default: '#1F2937'
   },
   
-  // Enhanced Store Information
+  // Store information
   tagline: String,
   aboutUs: String,
   services: [String],
@@ -96,35 +101,22 @@ const storeSchema = new mongoose.Schema({
     twitter: String,
     youtube: String
   },
-  gallery: [String], // Array of image URLs
-  features: [String], // Store highlights/features
+  gallery: [String],
+  features: [String],
   
-  // Restaurant-specific fields
-  restaurantInfo: {
-    cuisineType: [String], // ['Indian', 'Chinese', 'Italian']
-    diningOptions: [String], // ['Dine-in', 'Takeaway', 'Delivery']
-    priceRange: {
-      type: String,
-      enum: ['$', '$$', '$$$', '$$$$']
-    },
-    averageCookingTime: Number, // in minutes
-    specialties: [String]
-  },
-  
-  // QR Menu settings
-  qrMenu: {
-    enabled: {
-      type: Boolean,
-      default: false
-    },
-    qrCode: String, // Generated QR code URL
-    menuSlug: String // Unique slug for menu access
-  },
-
   deliveryRadius: {
     type: Number,
-    default: 5 // in kilometers
+    default: 5
   },
+  deliveryOptions: [{
+    type: String,
+    enum: ['Home Delivery', 'Store Pickup', 'Express Delivery']
+  }],
+  paymentMethods: [{
+    type: String,
+    enum: ['Cash', 'Card', 'UPI', 'Net Banking', 'Wallet']
+  }],
+  
   isActive: {
     type: Boolean,
     default: true
@@ -146,15 +138,10 @@ const storeSchema = new mongoose.Schema({
 });
 
 // Indexes
-storeSchema.index({ location: '2dsphere' });
-storeSchema.index({ category: 1 });
-storeSchema.index({ isActive: 1 });
-storeSchema.index({ ownerId: 1 });
-storeSchema.index({ city: 1, state: 1 });
-storeSchema.index({ state: 1 });
-storeSchema.index({ pincode: 1 });
-storeSchema.index({ businessType: 1 });
-storeSchema.index({ 'restaurantInfo.cuisineType': 1 });
-storeSchema.index({ 'qrMenu.menuSlug': 1 });
+sellerSchema.index({ location: '2dsphere' });
+sellerSchema.index({ category: 1 });
+sellerSchema.index({ isActive: 1 });
+sellerSchema.index({ ownerId: 1 });
+sellerSchema.index({ city: 1, state: 1 });
 
-module.exports = mongoose.model('Store', storeSchema);
+module.exports = mongoose.model('Seller', sellerSchema);

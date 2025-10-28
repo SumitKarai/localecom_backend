@@ -42,11 +42,24 @@ try {
   
   app.use('/', require('./routes/ui'));
   console.log('✅ UI routes loaded successfully');
+  
+  console.log('✅ User roles routes loaded successfully');
+  console.log('✅ Seller routes loaded successfully');
+  console.log('✅ Restaurant routes loaded successfully');
+  console.log('✅ Menu items routes loaded successfully');
+  console.log('✅ QR code routes loaded successfully');
+  console.log('✅ Freelancer routes loaded successfully');
 
 app.use('/api/profile', require('./routes/profile'));
+app.use('/api/user-roles', require('./routes/userRoles'));
 app.use('/api/stores', require('./routes/storesPublic'));
 app.use('/api/stores/manage', require('./routes/stores'));
+app.use('/api/sellers', require('./routes/sellers'));
+app.use('/api/restaurants', require('./routes/restaurants'));
 app.use('/api/products', require('./routes/products'));
+app.use('/api/menu-items', require('./routes/menuItems'));
+app.use('/api/qr-code', require('./routes/qrCode'));
+app.use('/api/freelancers', require('./routes/freelancers'));
 app.use('/api/reviews', require('./routes/reviews'));
 } catch (error) {
   console.error('❌ Error loading routes:', error);
