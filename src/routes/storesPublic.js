@@ -122,14 +122,25 @@ router.get('/debug/locations', async (req, res) => {
   }
 });
 
-// Get single store by ID (public access)
+// Get single store by ID with reviews (public access)
 router.get('/:id', async (req, res) => {
   try {
-    const store = await Store.findById(req.params.id);
+    const Review = require('../models/Review');
+    
+    const [store, reviews] = await Promise.all([
+      Store.findById(req.params.id),
+      Review.find({ 
+        targetType: 'Store',
+        targetId: req.params.id,
+        isApproved: true 
+      }).sort({ rating: -1, createdAt: -1 }).limit(10)
+    ]);
+    
     if (!store) {
       return res.status(404).json({ error: 'Store not found' });
     }
-    res.json({ store });
+    
+    res.json({ store, reviews });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

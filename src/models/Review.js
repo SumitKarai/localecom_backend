@@ -1,57 +1,79 @@
 const mongoose = require('mongoose');
 
 const reviewSchema = new mongoose.Schema({
+  // Universal reference system
+  targetType: {
+    type: String,
+    required: true,
+    enum: ['Restaurant', 'Store', 'Product', 'Freelancer']
+  },
+  targetId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    refPath: 'targetType'
+  },
+  
+  // Customer information
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'User'
+  },
+  customerName: {
+    type: String,
     required: true
   },
-  storeId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Store'
+  customerPhone: {
+    type: String,
+    required: true
   },
-  productId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product'
+  customerEmail: {
+    type: String
   },
-
+  
+  // Review content
   rating: {
     type: Number,
+    required: true,
     min: 1,
-    max: 5,
-    required: true
+    max: 5
   },
   comment: {
     type: String,
-    maxLength: 500,
-    trim: true
+    maxlength: 500
   },
-  helpfulVotes: {
-    type: Number,
-    default: 0
+  
+  // Additional context
+  orderContext: {
+    orderId: String,
+    orderValue: Number,
+    deliveryExperience: Number // 1-5 rating for delivery
   },
-  helpfulVotedBy: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
-  isVerifiedPurchase: {
+  
+  // Verification and moderation
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  isApproved: {
     type: Boolean,
     default: true
   },
-  reviewType: {
-    type: String,
-    enum: ['store', 'product'],
-    required: true
+  
+  // Helpful votes
+  helpfulVotes: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true
 });
 
 // Indexes
-reviewSchema.index({ storeId: 1, createdAt: -1 });
-reviewSchema.index({ productId: 1, createdAt: -1 });
-reviewSchema.index({ userId: 1, storeId: 1 }, { unique: true, sparse: true });
-reviewSchema.index({ userId: 1, productId: 1 }, { unique: true, sparse: true });
+reviewSchema.index({ targetType: 1, targetId: 1 });
 reviewSchema.index({ rating: 1 });
+reviewSchema.index({ createdAt: -1 });
+reviewSchema.index({ customerPhone: 1 });
+reviewSchema.index({ isApproved: 1 });
+reviewSchema.index({ userId: 1, targetType: 1, targetId: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Review', reviewSchema);

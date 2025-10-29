@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     
     // If storeId provided, filter by specific store
     if (storeId) {
-      productQuery.storeId = storeId;
+      productQuery.sellerId = storeId;
     } else {
       // Build store filters
       if (city) storeQuery.city = new RegExp(city, 'i');
@@ -50,7 +50,7 @@ router.get('/', async (req, res) => {
               
               // Check if we have enough products
               const productCount = await Product.countDocuments({
-                storeId: { $in: foundStores.map(s => s._id) },
+                sellerId: { $in: foundStores.map(s => s._id) },
                 ...(search && { name: new RegExp(search, 'i') })
               });
               
@@ -74,14 +74,14 @@ router.get('/', async (req, res) => {
         const storeIds = stores.map(store => store._id);
         
         if (storeIds.length > 0) {
-          productQuery.storeId = { $in: storeIds };
+          productQuery.sellerId = { $in: storeIds };
         } else if (city || state) {
           // If city/state filters applied but no stores found, return empty
           return res.json({ products: [] });
         }
       } else {
         // Location-based filtering already applied
-        productQuery.storeId = storeQuery._id;
+        productQuery.sellerId = storeQuery._id;
       }
     }
     
@@ -91,7 +91,7 @@ router.get('/', async (req, res) => {
     }
     
     const products = await Product.find(productQuery)
-      .populate('storeId', 'name address location city state')
+      .populate('sellerId', 'name address location city state')
       .sort({ createdAt: -1 });
     
     res.json({ products });
@@ -114,19 +114,19 @@ router.get('/:productId/stores', async (req, res) => {
     // Find all products with the same name across different stores
     const similarProducts = await Product.find({
       name: new RegExp(`^${requestedProduct.name}$`, 'i')
-    }).populate('storeId');
+    }).populate('sellerId');
     
     // Group by store and format response
     const storesWithProduct = similarProducts.map(product => ({
       store: {
-        _id: product.storeId._id,
-        name: product.storeId.name,
-        city: product.storeId.city,
-        state: product.storeId.state,
-        phone: product.storeId.phone,
-        whatsapp: product.storeId.whatsapp,
-        rating: product.storeId.rating,
-        totalReviews: product.storeId.totalReviews
+        _id: product.sellerId._id,
+        name: product.sellerId.name,
+        city: product.sellerId.city,
+        state: product.sellerId.state,
+        phone: product.sellerId.phone,
+        whatsapp: product.sellerId.whatsapp,
+        rating: product.sellerId.rating,
+        totalReviews: product.sellerId.totalReviews
       },
       price: product.price,
       inventory: product.inventory
@@ -138,17 +138,26 @@ router.get('/:productId/stores', async (req, res) => {
   }
 });
 
-// Get single product details
+// Get single product details with reviews
 router.get('/:productId', async (req, res) => {
   try {
     const { productId } = req.params;
-    const product = await Product.findById(productId).populate('storeId', 'name');
+    const Review = require('../models/Review');
+    
+    const [product, reviews] = await Promise.all([
+      Product.findById(productId).populate('sellerId', 'name city state rating totalReviews'),
+      Review.find({ 
+        targetType: 'Product',
+        targetId: productId,
+        isApproved: true 
+      }).sort({ rating: -1, createdAt: -1 }).limit(10)
+    ]);
     
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
     
-    res.json({ product });
+    res.json({ product, reviews });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

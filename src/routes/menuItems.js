@@ -74,10 +74,11 @@ router.get('/restaurant/:restaurantId', async (req, res) => {
   }
 });
 
-// Get menu by QR slug
+// Get menu by QR slug with reviews
 router.get('/qr/:menuSlug', async (req, res) => {
   try {
     const { menuSlug } = req.params;
+    const Review = require('../models/Review');
 
     const restaurant = await Restaurant.findOne({ 
       'qrMenu.menuSlug': menuSlug,
@@ -87,13 +88,21 @@ router.get('/qr/:menuSlug', async (req, res) => {
       return res.status(404).json({ error: 'Menu not found' });
     }
 
-    const menuItems = await MenuItem.find({ 
-      restaurantId: restaurant._id, 
-      isActive: true,
-      'availability.isAvailable': true 
-    }).sort({ category: 1, name: 1 });
+    // Get menu items and reviews in parallel
+    const [menuItems, reviews] = await Promise.all([
+      MenuItem.find({ 
+        restaurantId: restaurant._id, 
+        isActive: true
+      }).sort({ 'availability.isAvailable': -1, category: 1, name: 1 }),
+      
+      Review.find({ 
+        targetType: 'Restaurant',
+        targetId: restaurant._id,
+        isApproved: true 
+      }).sort({ rating: -1, createdAt: -1 }).limit(10)
+    ]);
     
-    res.json({ menuItems, restaurant });
+    res.json({ menuItems, restaurant, reviews });
   } catch (error) {
     console.error('❌ Error fetching QR menu:', error);
     res.status(500).json({ error: 'Failed to fetch menu' });

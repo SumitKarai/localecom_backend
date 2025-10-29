@@ -68,14 +68,7 @@ const menuItemSchema = new mongoose.Schema({
     enum: ['popular', 'chef-special', 'new', 'bestseller', 'spicy', 'mild', 'healthy']
   }],
   
-  rating: {
-    type: Number,
-    default: 0
-  },
-  totalReviews: {
-    type: Number,
-    default: 0
-  },
+
   isActive: {
     type: Boolean,
     default: true
