@@ -38,19 +38,14 @@ router.get('/restaurant/:restaurantId',
 );
 
 // Get printable QR code page
-router.get('/print/:restaurantId',
-  passport.authenticate('jwt', { session: false }),
-  async (req, res) => {
+router.get('/print/:restaurantId', async (req, res) => {
     try {
       const { restaurantId } = req.params;
       
-      const restaurant = await Restaurant.findOne({ 
-        _id: restaurantId, 
-        ownerId: req.user._id 
-      });
+      const restaurant = await Restaurant.findById(restaurantId);
       
       if (!restaurant) {
-        return res.status(404).json({ error: 'Restaurant not found or access denied' });
+        return res.status(404).json({ error: 'Restaurant not found' });
       }
 
       const menuUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/menu/${restaurant.qrMenu.menuSlug}`;

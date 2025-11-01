@@ -14,7 +14,7 @@ const menuItemSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['Appetizers', 'Main Course', 'Desserts', 'Beverages', 'Snacks', 'Breakfast', 'Lunch', 'Dinner', 'Specials']
+    enum: ['Starters & Appetizers', 'Soups & Salads', 'Main Course (Veg)', 'Main Course (Non-Veg)', 'Rice & Biryani', 'Indian Breads', 'Pasta, Noodles & Chinese', 'Snacks & Fast Food', 'Street Food & Regional Specials', 'Continental & International Dishes', 'Healthy & Diet Food', 'Combos & Thalis', 'Desserts & Sweets', 'Beverages (Hot & Cold)', 'Bar Menu (Cocktails, Mocktails, Drinks)', 'Kids Menu', "Chef's & Seasonal Specials", 'Add-Ons & Extras']
   },
   price: {
     type: Number,
@@ -65,7 +65,7 @@ const menuItemSchema = new mongoose.Schema({
   
   tags: [{
     type: String,
-    enum: ['popular', 'chef-special', 'new', 'bestseller', 'spicy', 'mild', 'healthy']
+    enum: ['popular', 'chef-special', 'new', 'bestseller', 'spicy', 'mild', 'healthy', 'low-calorie', 'protein-rich', 'organic', 'fresh', 'homemade', 'traditional', 'fusion', 'crispy', 'creamy', 'tangy', 'sweet', 'sour', 'must-try', 'signature', 'limited-time', 'seasonal', 'local-favorite']
   }],
   
 

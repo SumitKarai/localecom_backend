@@ -116,10 +116,19 @@ router.put('/:itemId',
     try {
       const { itemId } = req.params;
 
-      // Verify ownership
-      const menuItem = await MenuItem.findById(itemId).populate('restaurantId');
-      if (!menuItem || menuItem.restaurantId.ownerId.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ error: 'Menu item not found or access denied' });
+      // Find menu item and verify ownership
+      const menuItem = await MenuItem.findById(itemId);
+      if (!menuItem) {
+        return res.status(404).json({ error: 'Menu item not found' });
+      }
+
+      // Verify restaurant ownership
+      const restaurant = await Restaurant.findOne({ 
+        _id: menuItem.restaurantId, 
+        ownerId: req.user._id 
+      });
+      if (!restaurant) {
+        return res.status(403).json({ error: 'Access denied' });
       }
 
       const updatedItem = await MenuItem.findByIdAndUpdate(
@@ -143,10 +152,19 @@ router.delete('/:itemId',
     try {
       const { itemId } = req.params;
 
-      // Verify ownership
-      const menuItem = await MenuItem.findById(itemId).populate('restaurantId');
-      if (!menuItem || menuItem.restaurantId.ownerId.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ error: 'Menu item not found or access denied' });
+      // Find menu item and verify ownership
+      const menuItem = await MenuItem.findById(itemId);
+      if (!menuItem) {
+        return res.status(404).json({ error: 'Menu item not found' });
+      }
+
+      // Verify restaurant ownership
+      const restaurant = await Restaurant.findOne({ 
+        _id: menuItem.restaurantId, 
+        ownerId: req.user._id 
+      });
+      if (!restaurant) {
+        return res.status(403).json({ error: 'Access denied' });
       }
 
       await MenuItem.findByIdAndDelete(itemId);

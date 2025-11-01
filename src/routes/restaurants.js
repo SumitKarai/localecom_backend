@@ -107,34 +107,30 @@ router.get('/search', async (req, res) => {
     if (lat && lng) {
       const latitude = parseFloat(lat);
       const longitude = parseFloat(lng);
-      const distances = [2, 5, 10, 20, 50];
+      const limit = parseInt(req.query.limit) || 20;
       
-      for (const distance of distances) {
-        const query = {
-          isActive: true,
-          location: {
-            $near: {
-              $geometry: {
-                type: 'Point',
-                coordinates: [longitude, latitude]
-              },
-              $maxDistance: distance * 1000
+      const query = {
+        isActive: true,
+        location: {
+          $near: {
+            $geometry: {
+              type: 'Point',
+              coordinates: [longitude, latitude]
             }
           }
-        };
+        }
+      };
+      
+      if (city) query.city = city;
+      if (state) query.state = state;
+      if (cuisineType) query.cuisineType = { $in: [cuisineType] };
+      if (search) query.name = new RegExp(search, 'i');
+      
+      restaurants = await Restaurant.find(query)
+        .select('name description cuisineType address city state phone whatsapp location rating totalReviews qrMenu diningOptions priceRange averageCookingTime logo banner workingHours isActive theme')
+        .limit(limit);
         
-        if (city) query.city = city;
-        if (state) query.state = state;
-        if (cuisineType) query.cuisineType = { $in: [cuisineType] };
-        if (search) query.name = new RegExp(search, 'i');
-        
-        restaurants = await Restaurant.find(query)
-          .select('name description cuisineType address city state phone whatsapp location rating totalReviews qrMenu')
-          .limit(100);
-          
-        actualRadius = distance;
-        if (restaurants.length >= 20) break;
-      }
+      actualRadius = 'unlimited';
     } else {
       const query = { isActive: true };
       if (city) query.city = city;
@@ -143,7 +139,7 @@ router.get('/search', async (req, res) => {
       if (search) query.name = new RegExp(search, 'i');
       
       restaurants = await Restaurant.find(query)
-        .select('name description cuisineType address city state phone whatsapp location rating totalReviews qrMenu')
+        .select('name description cuisineType address city state phone whatsapp location rating totalReviews qrMenu diningOptions priceRange averageCookingTime logo banner workingHours isActive theme')
         .limit(100);
     }
     
