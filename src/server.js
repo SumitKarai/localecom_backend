@@ -58,6 +58,7 @@ app.use('/api/sellers', require('./routes/sellers'));
 app.use('/api/restaurants', require('./routes/restaurants'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/menu-items', require('./routes/menuItems'));
+app.use('/api/menu-categories', require('./routes/menuCategories'));
 app.use('/api/qr-code', require('./routes/qrCode'));
 app.use('/api/freelancers', require('./routes/freelancers'));
 app.use('/api/reviews', require('./routes/reviews'));

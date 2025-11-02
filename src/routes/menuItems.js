@@ -2,6 +2,7 @@ const express = require('express');
 const passport = require('../config/passport');
 const Restaurant = require('../models/Restaurant');
 const MenuItem = require('../models/MenuItem');
+const MenuCategory = require('../models/MenuCategory');
 const router = express.Router();
 
 // Create menu item (restaurant owners only)
@@ -9,7 +10,7 @@ router.post('/',
   passport.authenticate('jwt', { session: false }),
   async (req, res) => {
     try {
-      const { restaurantId, name, description, category, price, discountPrice, images, dietary, availability, preparationTime, tags } = req.body;
+      const { restaurantId, name, description, categoryId, price, discountPrice, images, dietary, availability, preparationTime, tags } = req.body;
 
       // Verify restaurant ownership
       const restaurant = await Restaurant.findOne({ 
@@ -20,11 +21,21 @@ router.post('/',
         return res.status(403).json({ error: 'Restaurant not found or access denied' });
       }
 
+      // Verify category belongs to restaurant
+      const category = await MenuCategory.findOne({
+        _id: categoryId,
+        restaurantId: restaurantId
+      });
+      if (!category) {
+        return res.status(400).json({ error: 'Invalid category' });
+      }
+
       const menuItem = new MenuItem({
         restaurantId,
         name,
         description,
-        category,
+        categoryId,
+        category: category.name,
         price,
         discountPrice,
         images: images || [],
@@ -93,7 +104,7 @@ router.get('/qr/:menuSlug', async (req, res) => {
       MenuItem.find({ 
         restaurantId: restaurant._id, 
         isActive: true
-      }).sort({ 'availability.isAvailable': -1, category: 1, name: 1 }),
+      }).populate('categoryId', 'name displayOrder').sort({ 'availability.isAvailable': -1, 'categoryId.displayOrder': 1, name: 1 }),
       
       Review.find({ 
         targetType: 'Restaurant',

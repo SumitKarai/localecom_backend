@@ -2,6 +2,7 @@ const express = require('express');
 const passport = require('../config/passport');
 const Restaurant = require('../models/Restaurant');
 const MenuItem = require('../models/MenuItem');
+const MenuCategory = require('../models/MenuCategory');
 const router = express.Router();
 
 // Create restaurant
@@ -25,6 +26,26 @@ router.post('/',
       });
 
       await restaurant.save();
+
+      // Create default categories
+      const defaultCategories = [
+        'Starters',
+        'Main Course',
+        'Desserts',
+        'Beverages'
+      ];
+
+      const categoryPromises = defaultCategories.map((name, index) => {
+        const category = new MenuCategory({
+          name,
+          restaurantId: restaurant._id,
+          displayOrder: index
+        });
+        return category.save();
+      });
+
+      await Promise.all(categoryPromises);
+      
       res.status(201).json({ message: 'Restaurant created successfully', restaurant });
     } catch (error) {
       console.error('❌ Error creating restaurant:', error);
