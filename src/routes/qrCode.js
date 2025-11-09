@@ -1,11 +1,13 @@
 const express = require('express');
 const passport = require('../config/passport');
 const Restaurant = require('../models/Restaurant');
+const { checkSubscription } = require('../middleware/subscription');
 const router = express.Router();
 
 // Generate QR code for restaurant menu
 router.get('/restaurant/:restaurantId',
   passport.authenticate('jwt', { session: false }),
+  checkSubscription,
   async (req, res) => {
     try {
       const { restaurantId } = req.params;

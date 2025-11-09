@@ -2,6 +2,7 @@ const express = require('express');
 const MenuCategory = require('../models/MenuCategory');
 const Restaurant = require('../models/Restaurant');
 const passport = require('../config/passport');
+const { checkSubscription } = require('../middleware/subscription');
 
 const router = express.Router();
 
@@ -39,7 +40,7 @@ router.get('/my-categories', passport.authenticate('jwt', { session: false }), a
 });
 
 // Create category
-router.post('/', passport.authenticate('jwt', { session: false }), async (req, res) => {
+router.post('/', passport.authenticate('jwt', { session: false }), checkSubscription, async (req, res) => {
   try {
     const restaurant = await Restaurant.findOne({ ownerId: req.user._id });
     if (!restaurant) {
@@ -72,7 +73,7 @@ router.post('/', passport.authenticate('jwt', { session: false }), async (req, r
 });
 
 // Update category
-router.put('/:id', passport.authenticate('jwt', { session: false }), async (req, res) => {
+router.put('/:id', passport.authenticate('jwt', { session: false }), checkSubscription, async (req, res) => {
   try {
     const restaurant = await Restaurant.findOne({ ownerId: req.user._id });
     if (!restaurant) {
@@ -115,7 +116,7 @@ router.put('/:id', passport.authenticate('jwt', { session: false }), async (req,
 });
 
 // Delete category
-router.delete('/:id', passport.authenticate('jwt', { session: false }), async (req, res) => {
+router.delete('/:id', passport.authenticate('jwt', { session: false }), checkSubscription, async (req, res) => {
   try {
     const restaurant = await Restaurant.findOne({ ownerId: req.user._id });
     if (!restaurant) {

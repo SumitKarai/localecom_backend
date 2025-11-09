@@ -3,11 +3,13 @@ const passport = require('../config/passport');
 const Restaurant = require('../models/Restaurant');
 const MenuItem = require('../models/MenuItem');
 const MenuCategory = require('../models/MenuCategory');
+const { checkSubscription } = require('../middleware/subscription');
 const router = express.Router();
 
 // Create restaurant
 router.post('/',
   passport.authenticate('jwt', { session: false }),
+  checkSubscription,
   async (req, res) => {
     try {
       const existingRestaurant = await Restaurant.findOne({ ownerId: req.user._id });

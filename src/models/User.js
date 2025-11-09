@@ -41,6 +41,23 @@ const userSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  subscription: {
+    isSubscribed: {
+      type: Boolean,
+      default: false
+    },
+    subscriptionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Subscription'
+    },
+    expiresAt: Date,
+    trialEndsAt: {
+      type: Date,
+      default: function() {
+        return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days trial
+      }
+    }
   }
 }, {
   timestamps: true

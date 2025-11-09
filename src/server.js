@@ -63,6 +63,7 @@ app.use('/api/qr-code', require('./routes/qrCode'));
 app.use('/api/freelancers', require('./routes/freelancers'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/subscription', require('./routes/subscription'));
 } catch (error) {
   console.error('❌ Error loading routes:', error);
 }

@@ -3,11 +3,13 @@ const passport = require('../config/passport');
 const Restaurant = require('../models/Restaurant');
 const MenuItem = require('../models/MenuItem');
 const MenuCategory = require('../models/MenuCategory');
+const { checkSubscription } = require('../middleware/subscription');
 const router = express.Router();
 
 // Create menu item (restaurant owners only)
 router.post('/',
   passport.authenticate('jwt', { session: false }),
+  checkSubscription,
   async (req, res) => {
     try {
       const { restaurantId, name, description, categoryId, price, discountPrice, images, dietary, availability, preparationTime, tags } = req.body;
@@ -123,6 +125,7 @@ router.get('/qr/:menuSlug', async (req, res) => {
 // Update menu item
 router.put('/:itemId',
   passport.authenticate('jwt', { session: false }),
+  checkSubscription,
   async (req, res) => {
     try {
       const { itemId } = req.params;
@@ -159,6 +162,7 @@ router.put('/:itemId',
 // Delete menu item
 router.delete('/:itemId',
   passport.authenticate('jwt', { session: false }),
+  checkSubscription,
   async (req, res) => {
     try {
       const { itemId } = req.params;
