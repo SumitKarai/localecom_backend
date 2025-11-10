@@ -3,11 +3,13 @@ const Review = require('../models/Review');
 const Restaurant = require('../models/Restaurant');
 const Store = require('../models/Store');
 const Product = require('../models/Product');
+const User = require('../models/User'); // For Freelancer reviews
 const router = express.Router();
 
 // Submit a review
 router.post('/', async (req, res) => {
   try {
+
     const { targetType, targetId, customerName, customerPhone, customerEmail, rating, comment, orderContext, userId } = req.body;
 
     // Validate target exists
@@ -16,6 +18,7 @@ router.post('/', async (req, res) => {
       case 'Restaurant': targetModel = Restaurant; break;
       case 'Store': targetModel = Store; break;
       case 'Product': targetModel = Product; break;
+      case 'Freelancer': targetModel = User; break;
       default: return res.status(400).json({ message: 'Invalid target type' });
     }
 
@@ -24,13 +27,7 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ message: `${targetType} not found` });
     }
 
-    // Check for existing review from same user
-    if (userId) {
-      const existingReview = await Review.findOne({ userId, targetType, targetId });
-      if (existingReview) {
-        return res.status(400).json({ message: 'You have already reviewed this business' });
-      }
-    }
+
 
     // Create review
     const review = new Review({
@@ -52,9 +49,7 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({ message: 'Review submitted successfully', review });
   } catch (error) {
-    if (error.code === 11000) {
-      return res.status(400).json({ message: 'You have already reviewed this business' });
-    }
+    console.error('Review submission error:', error);
     res.status(500).json({ message: 'Error submitting review', error: error.message });
   }
 });
@@ -94,6 +89,7 @@ async function updateTargetRating(targetType, targetId) {
     case 'Restaurant': targetModel = Restaurant; break;
     case 'Store': targetModel = Store; break;
     case 'Product': targetModel = Product; break;
+    case 'Freelancer': targetModel = User; break;
   }
   
   await targetModel.findByIdAndUpdate(targetId, {

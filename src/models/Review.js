@@ -24,7 +24,7 @@ const reviewSchema = new mongoose.Schema({
   },
   customerPhone: {
     type: String,
-    required: true
+    required: false
   },
   customerEmail: {
     type: String
@@ -74,6 +74,6 @@ reviewSchema.index({ rating: 1 });
 reviewSchema.index({ createdAt: -1 });
 reviewSchema.index({ customerPhone: 1 });
 reviewSchema.index({ isApproved: 1 });
-reviewSchema.index({ userId: 1, targetType: 1, targetId: 1 }, { unique: true, sparse: true });
+reviewSchema.index({ userId: 1, targetType: 1, targetId: 1 });
 
 module.exports = mongoose.model('Review', reviewSchema);

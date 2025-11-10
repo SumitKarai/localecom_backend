@@ -153,6 +153,6 @@ restaurantSchema.index({ cuisineType: 1 });
 restaurantSchema.index({ isActive: 1 });
 restaurantSchema.index({ ownerId: 1 });
 restaurantSchema.index({ city: 1, state: 1 });
-restaurantSchema.index({ 'qrMenu.menuSlug': 1 });
+
 
 module.exports = mongoose.model('Restaurant', restaurantSchema);
