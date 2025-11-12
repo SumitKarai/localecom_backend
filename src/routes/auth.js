@@ -1,11 +1,110 @@
 const express = require('express');
 const passport = require('../config/passport');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const User = require('../models/User');
 const router = express.Router();
 // Add this test route at the beginning of auth.js
 router.get('/test', (req, res) => {
     res.json({ message: 'Auth routes are working!' });
   });
+
+// Email/Password Login
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
+    const user = await User.findOne({ email });
+    
+    if (!user || !user.password || !user.hasPassword) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    
+    const token = generateToken(user);
+    
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        profile: user.profile,
+        hasPassword: user.hasPassword
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Set Password (for existing Google users)
+router.post('/set-password', 
+  passport.authenticate('jwt', { session: false }),
+  async (req, res) => {
+    try {
+      const { password } = req.body;
+      
+      if (!password || password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      }
+      
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      await User.findByIdAndUpdate(req.user._id, {
+        password: hashedPassword,
+        hasPassword: true
+      });
+      
+      res.json({ message: 'Password set successfully' });
+    } catch (error) {
+      console.error('Set password error:', error);
+      res.status(500).json({ error: 'Failed to set password' });
+    }
+  }
+);
+
+// Change Password (for users with existing password)
+router.post('/change-password', 
+  passport.authenticate('jwt', { session: false }),
+  async (req, res) => {
+    try {
+      console.log('Change password request body:', req.body);
+      console.log('User ID:', req.user._id);
+      const { newPassword } = req.body;
+      
+      if (!newPassword) {
+        return res.status(400).json({ error: 'New password is required' });
+      }
+      
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'New password must be at least 6 characters' });
+      }
+      
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+      
+      await User.findByIdAndUpdate(req.user._id, {
+        password: hashedNewPassword,
+        hasPassword: true
+      });
+      
+      res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+      console.error('Change password error:', error);
+      res.status(500).json({ error: 'Failed to change password' });
+    }
+  }
+);
 // Generate JWT Token
 const generateToken = (user) => {
   return jwt.sign(

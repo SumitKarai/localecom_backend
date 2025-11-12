@@ -133,14 +133,14 @@ router.get('/status', passport.authenticate('jwt', { session: false }), async (r
     }
 
     const now = new Date();
-    const trialEndsAt = user.subscription?.trialEndsAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const trialEndsAt = user.subscription?.trialEndsAt;
     const expiresAt = user.subscription?.expiresAt || new Date(0);
     
     console.log('Current time:', now);
     console.log('Trial ends at:', trialEndsAt);
     console.log('Subscription expires at:', expiresAt);
     
-    const isTrialActive = trialEndsAt > now;
+    const isTrialActive = trialEndsAt && trialEndsAt > now;
     const isSubscribed = user.subscription?.isSubscribed && expiresAt > now;
     
     console.log('Trial active:', isTrialActive);

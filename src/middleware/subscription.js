@@ -9,8 +9,8 @@ const checkSubscription = async (req, res, next) => {
     }
 
     const now = new Date();
-    const isTrialActive = user.subscription.trialEndsAt > now;
-    const isSubscribed = user.subscription.isSubscribed && user.subscription.expiresAt > now;
+    const isTrialActive = user.subscription?.trialEndsAt && user.subscription.trialEndsAt > now;
+    const isSubscribed = user.subscription?.isSubscribed && user.subscription?.expiresAt && user.subscription.expiresAt > now;
 
     if (!isSubscribed && !isTrialActive) {
       return res.status(403).json({ 

@@ -23,7 +23,8 @@ router.get('/status',
           id: user._id,
           email: user.email,
           role: user.role,
-          profile: user.profile
+          profile: user.profile,
+          hasPassword: user.hasPassword || false
         },
         businesses: {
           hasSeller: !!seller,
