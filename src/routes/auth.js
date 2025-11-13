@@ -144,7 +144,7 @@ router.get('/google-test', (req, res) => {
 
 // Direct redirect test (bypass passport)
 router.get('/google-direct', (req, res) => {
-  const redirectUri = 'http://localhost:5000/api/auth/google/callback';
+  const redirectUri = process.env.CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback';
   const scopes = 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
   const googleAuthUrl = `https://accounts.google.com/oauth/authorize?` +
     `client_id=${process.env.GOOGLE_CLIENT_ID}&` +
@@ -162,7 +162,7 @@ router.get('/google-direct', (req, res) => {
 
 // Debug route to show the exact URL without redirecting
 router.get('/google-url', (req, res) => {
-  const redirectUri = 'http://localhost:5000/api/auth/google/callback';
+  const redirectUri = process.env.CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback';
   const scopes = 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
   const googleAuthUrl = `https://accounts.google.com/oauth/authorize?` +
     `client_id=${process.env.GOOGLE_CLIENT_ID}&` +
