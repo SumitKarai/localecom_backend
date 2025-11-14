@@ -12,6 +12,8 @@ connectDB();
 // Middleware
 const allowedOrigins = [
   'http://localhost:3000',
+  'https://ukabpakshi.in',
+  'https://www.ukabpakshi.in',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
