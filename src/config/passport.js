@@ -24,33 +24,58 @@ passport.use('google', new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
   callbackURL: process.env.CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback',
-  scope: ['profile', 'email']
-}, async (accessToken, refreshToken, profile, done) => {
+  scope: ['profile', 'email'],
+  passReqToCallback: true  // Important! Lets us check if user already existed
+}, async (req, accessToken, refreshToken, profile, done) => {
   try {
-    console.log('🔍 Google OAuth callback received for user:', profile.displayName);
-    
-    let user = await User.findOne({ googleId: profile.id });
-    
+    console.log('Google OAuth: User login attempt for:', profile.emails[0].value);
+
+    // 1. First, try to find user by googleId OR email (important!)
+    let user = await User.findOne({
+      $or: [
+        { googleId: profile.id },
+        { email: profile.emails[0].value }
+      ]
+    });
+
+    // 2. Existing user → just log them in (no new trial)
     if (user) {
-      console.log('✅ Existing user found:', user.profile.name);
+      console.log('Existing user found:', user.email);
+      
+      // Optional: Link googleId if they signed up with email before
+      if (!user.googleId) {
+        user.googleId = profile.id;
+        user.profile.avatar = profile.photos?.[0]?.value || user.profile.avatar;
+        await user.save();
+        console.log('Linked Google account to existing user');
+      }
+
       return done(null, user);
     }
-    
-    // Create new user
+
+    // 3. NEW USER → Create with 7-day trial (only once!)
+    console.log('Creating new user with 7-day free trial');
+
     user = new User({
       googleId: profile.id,
       email: profile.emails[0].value,
       profile: {
         name: profile.displayName,
-        avatar: profile.photos && profile.photos[0] ? profile.photos[0].value : null
+        avatar: profile.photos?.[0]?.value || null
+      },
+      subscription: {
+        hasUsedTrial: true,  // Mark trial as used immediately
+        trialEndsAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // +7 days
+        isSubscribed: false
       }
     });
-    
+
     await user.save();
-    console.log('✅ New user created:', user.profile.name);
+    console.log('New user created with trial:', user.email);
     return done(null, user);
+
   } catch (error) {
-    console.error('❌ Error in Google OAuth strategy:', error);
+    console.error('Error in Google OAuth strategy:', error);
     return done(error, null);
   }
 }));

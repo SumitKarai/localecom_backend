@@ -10,7 +10,8 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    lowercase: true
   },
   password: {
     type: String,
@@ -56,6 +57,10 @@ const userSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
+    hasUsedTrial: {
+      type: Boolean,
+      default: false   // This is the key!
+    },
     subscriptionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Subscription'
@@ -63,9 +68,7 @@ const userSchema = new mongoose.Schema({
     expiresAt: Date,
     trialEndsAt: {
       type: Date,
-      default: function() {
-        return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days trial
-      }
+      default: null
     }
   }
 }, {
