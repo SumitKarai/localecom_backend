@@ -1,7 +1,7 @@
 const express = require('express');
 const passport = require('../config/passport');
 const User = require('../models/User');
-const Seller = require('../models/Seller');
+const Store = require('../models/Store');
 const Restaurant = require('../models/Restaurant');
 const Freelancer = require('../models/Freelancer');
 const router = express.Router();
@@ -14,7 +14,7 @@ router.get('/status',
       const user = await User.findById(req.user._id);
       
       // Check if user has business profiles
-      const seller = await Seller.findOne({ ownerId: req.user._id });
+      const store = await Store.findOne({ ownerId: req.user._id });
       const restaurant = await Restaurant.findOne({ ownerId: req.user._id });
       const freelancer = await Freelancer.findOne({ userId: req.user._id });
       
@@ -27,10 +27,10 @@ router.get('/status',
           hasPassword: user.hasPassword || false
         },
         businesses: {
-          hasSeller: !!seller,
+          hasSeller: !!store,
           hasRestaurant: !!restaurant,
           hasFreelancer: !!freelancer,
-          seller,
+          store,
           restaurant,
           freelancer
         }
@@ -42,29 +42,62 @@ router.get('/status',
   }
 );
 
-// Update user role
+// Update user role + START 90-DAY TRIAL ONLY ONCE when becoming a business
 router.put('/role',
   passport.authenticate('jwt', { session: false }),
   async (req, res) => {
     try {
       const { role } = req.body;
-      
-      if (!['customer', 'seller', 'freelancer', 'restaurant'].includes(role)) {
+
+      // Validate role
+      const validRoles = ['customer', 'seller', 'freelancer', 'restaurant'];
+      if (!validRoles.includes(role)) {
         return res.status(400).json({ error: 'Invalid role' });
       }
-      
-      const updatedUser = await User.findByIdAndUpdate(
-        req.user._id,
-        { role },
-        { new: true, runValidators: true }
-      );
-      
-      res.json({ 
-        message: `Role updated to ${role}`, 
-        user: updatedUser 
+
+      const user = await User.findById(req.user._id);
+
+      // Define which roles are "premium" (trigger trial)
+      const premiumRoles = ['seller', 'freelancer', 'restaurant'];
+      const isSwitchingToPremium = premiumRoles.includes(role);
+      const wasCustomer = user.role === 'customer';
+
+      // Only start trial if:
+      // 1. Switching FROM customer TO a premium role
+      // 2. Trial has never been used before
+      if (isSwitchingToPremium && wasCustomer && !user.subscription.hasUsedTrial) {
+        user.subscription.hasUsedTrial = true;
+        user.subscription.trialEndsAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000); // 90 days
+        console.log(`90-day trial started for user: ${user.email}`);
+      }
+
+      // Update role
+      user.role = role;
+      await user.save();
+
+      // Calculate trial info for response
+      const now = new Date();
+      const trialActive = user.subscription.trialEndsAt && user.subscription.trialEndsAt > now;
+      const daysRemaining = trialActive
+        ? Math.ceil((user.subscription.trialEndsAt - now) / (1000 * 60 * 60 * 24))
+        : 0;
+
+      res.json({
+        message: `Role updated to ${role}`,
+        trialStarted: isSwitchingToPremium && wasCustomer && !user.subscription.hasUsedTrial, // true only the first time
+        trialActive,
+        trialDaysRemaining: daysRemaining,
+        trialEndsAt: user.subscription.trialEndsAt,
+        user: {
+          id: user._id,
+          role: user.role,
+          email: user.email,
+          profile: user.profile
+        }
       });
+
     } catch (error) {
-      console.error('❌ Error updating user role:', error);
+      console.error('Error updating user role:', error);
       res.status(500).json({ error: 'Failed to update user role' });
     }
   }
@@ -81,9 +114,9 @@ router.get('/can-become/:businessType',
       
       switch (businessType) {
         case 'seller':
-          const existingSeller = await Seller.findOne({ ownerId: req.user._id });
-          canBecome = !existingSeller;
-          reason = existingSeller ? 'User already has a store' : '';
+          const existingStore = await Store.findOne({ ownerId: req.user._id });
+          canBecome = !existingStore;
+          reason = existingStore ? 'User already has a store' : '';
           break;
           
         case 'restaurant':
@@ -119,7 +152,7 @@ router.delete('/reset-user',
       await User.findByIdAndUpdate(req.user._id, { role: 'customer' });
       
       // Delete all business profiles
-      await Seller.deleteMany({ ownerId: req.user._id });
+      await Store.deleteMany({ ownerId: req.user._id });
       await Restaurant.deleteMany({ ownerId: req.user._id });
       await Freelancer.deleteMany({ userId: req.user._id });
       
@@ -127,8 +160,8 @@ router.delete('/reset-user',
       const Product = require('../models/Product');
       const MenuItem = require('../models/MenuItem');
       
-      await Product.deleteMany({ sellerId: { $exists: true } }); // Will need to be more specific
-      await MenuItem.deleteMany({ restaurantId: { $exists: true } }); // Will need to be more specific
+      await Product.deleteMany({ storeId: { $exists: true } });
+      await MenuItem.deleteMany({ restaurantId: { $exists: true } });
       
       res.json({ message: 'User reset successfully for testing' });
     } catch (error) {

@@ -65,6 +65,51 @@ router.post('/menu-item',
   }
 );
 
+// Upload product image
+router.post('/product',
+  passport.authenticate('jwt', { session: false }),
+  upload.single('image'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No image file provided' });
+      }
+
+      // Get store info for folder organization
+      const Store = require('../models/Store');
+      const store = await Store.findOne({ ownerId: req.user._id });
+      
+      if (!store) {
+        return res.status(404).json({ error: 'Store not found. Please create a store first.' });
+      }
+      
+      // Create folder path based on store
+      const storeSlug = store.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const folderPath = `/stores/${storeSlug}-${store._id}/products`;
+      
+      const fileName = `${Date.now()}-${req.file.originalname}`;
+      
+      const result = await imagekit.upload({
+        file: req.file.buffer,
+        fileName: fileName,
+        folder: folderPath,
+        useUniqueFileName: true,
+        tags: ['product', store._id.toString(), req.user._id.toString()]
+      });
+
+      res.json({
+        success: true,
+        imageUrl: result.url,
+        fileId: result.fileId,
+        thumbnailUrl: result.thumbnailUrl
+      });
+    } catch (error) {
+      console.error('ImageKit product upload error:', error);
+      res.status(500).json({ error: 'Failed to upload product image' });
+    }
+  }
+);
+
 // Delete image
 router.delete('/image/:fileId',
   passport.authenticate('jwt', { session: false }),

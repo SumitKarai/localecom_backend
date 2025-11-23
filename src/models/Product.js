@@ -1,49 +1,44 @@
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
-  sellerId: {
+  masterProductId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Seller',
-    required: true
+    ref: 'MasterProduct',
+    required: true,
   },
-  name: {
-    type: String,
-    required: true
+  storeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Store',
+    required: true,
   },
-  description: String,
-  category: String,
+  // Store-specific pricing
   price: {
     type: Number,
-    required: true
+    required: true,
   },
   discountPrice: Number,
-  images: [String],
-  inventory: {
-    quantity: {
-      type: Number,
-      default: 0
-    },
-    unit: String,
-    inStock: {
+  
+  // Store-specific availability
+  availability: {
+    isAvailable: {
       type: Boolean,
-      default: true
-    }
+      default: true,
+    },
   },
-  tags: [String],
-  rating: {
-    type: Number,
-    default: 0
-  },
-  totalReviews: {
-    type: Number,
-    default: 0
-  },
+  
   isActive: {
     type: Boolean,
-    default: true
-  }
-}, {
-  timestamps: true
-});
+    default: true,
+  },
+}, { timestamps: true });
+
+// Indexes for efficient queries
+productSchema.index({ masterProductId: 1 });
+productSchema.index({ storeId: 1 });
+productSchema.index({ 'availability.isAvailable': 1 });
+productSchema.index({ isActive: 1 });
+productSchema.index({ price: 1 });
+productSchema.index({ storeId: 1, masterProductId: 1 }, { unique: true }); // One product per store
 
 module.exports = mongoose.model('Product', productSchema);
+

@@ -6,6 +6,9 @@ const connectDB = require('./config/database');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Global error store for debugging
+global.routeErrors = [];
+
 // Connect to MongoDB
 connectDB();
 
@@ -52,27 +55,51 @@ try {
   console.log('✅ QR code routes loaded successfully');
   console.log('✅ Freelancer routes loaded successfully');
 
-app.use('/api/profile', require('./routes/profile'));
-app.use('/api/user-roles', require('./routes/userRoles'));
-app.use('/api/stores', require('./routes/storesPublic'));
-app.use('/api/stores/manage', require('./routes/stores'));
-app.use('/api/sellers', require('./routes/sellers'));
-app.use('/api/restaurants', require('./routes/restaurants'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/menu-items', require('./routes/menuItems'));
-app.use('/api/menu-categories', require('./routes/menuCategories'));
-app.use('/api/qr-code', require('./routes/qrCode'));
-app.use('/api/freelancers', require('./routes/freelancers'));
-app.use('/api/reviews', require('./routes/reviews'));
-app.use('/api/upload', require('./routes/upload'));
-app.use('/api/subscription', require('./routes/subscription'));
+  app.use('/api/profile', require('./routes/profile'));
+  app.use('/api/user-roles', require('./routes/userRoles'));
+  app.use('/api/stores', require('./routes/storesPublic'));
+  app.use('/api/stores/manage', require('./routes/stores'));
+  // app.use('/api/sellers', require('./routes/sellers')); // REMOVED: Broken/Legacy route
+  app.use('/api/restaurants', require('./routes/restaurants'));
+  app.use('/api/products', require('./routes/products'));
+  app.use('/api/master-products', require('./routes/master-products'));
+  
+  // Load product categories explicitly with try-catch
+  try {
+    app.use('/api/product-categories', require('./routes/productCategories'));
+    console.log('✅ Product categories routes loaded successfully');
+  } catch (err) {
+    console.error('❌ FAILED to load product-categories:', err);
+    global.routeErrors.push({ route: 'product-categories', error: err.message, stack: err.stack });
+  }
+
+  app.use('/api/menu-items', require('./routes/menuItems'));
+  app.use('/api/menu-categories', require('./routes/menuCategories'));
+  app.use('/api/qr-code', require('./routes/qrCode'));
+  app.use('/api/freelancers', require('./routes/freelancers'));
+  app.use('/api/reviews', require('./routes/reviews'));
+  app.use('/api/upload', require('./routes/upload'));
+  app.use('/api/subscription', require('./routes/subscription'));
 } catch (error) {
   console.error('❌ Error loading routes:', error);
+  global.routeErrors.push({ route: 'general', error: error.message });
 }
+
+// Debug route
+app.get('/api/debug/routes', (req, res) => {
+  res.json({
+    status: 'active',
+    errors: global.routeErrors,
+    env: {
+      GOOGLE_ID: !!process.env.GOOGLE_CLIENT_ID,
+      JWT_SECRET: !!process.env.JWT_SECRET
+    }
+  });
+});
 
 app.get('/', (req, res) => {
     res.json({ 
-      message: 'Welcome to LocaleCom API',
+      message: 'Welcome to LocaleCom API v2 (Debug Mode)',
       status: 'running',
       timestamp: new Date().toISOString()
     });

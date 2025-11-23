@@ -59,7 +59,7 @@ const userSchema = new mongoose.Schema({
     },
     hasUsedTrial: {
       type: Boolean,
-      default: false   // This is the key!
+      default: false
     },
     subscriptionId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -68,7 +68,11 @@ const userSchema = new mongoose.Schema({
     expiresAt: Date,
     trialEndsAt: {
       type: Date,
-      default: null
+      default: function() {
+        // Automatically give 90-day free trial to new users
+        const now = new Date();
+        return new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+      }
     }
   }
 }, {

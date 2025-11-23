@@ -10,10 +10,6 @@ const storeSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  description: {
-    type: String,
-    required: true
-  },
   category: {
     type: String,
     required: true
@@ -80,7 +76,6 @@ const storeSchema = new mongoose.Schema({
   // Enhanced Store Information
   tagline: String,
   aboutUs: String,
-  services: [String],
   workingHours: {
     monday: { open: String, close: String, closed: { type: Boolean, default: false } },
     tuesday: { open: String, close: String, closed: { type: Boolean, default: false } },
@@ -97,7 +92,6 @@ const storeSchema = new mongoose.Schema({
     youtube: String
   },
   gallery: [String], // Array of image URLs
-  features: [String], // Store highlights/features
   
   // Restaurant-specific fields
   restaurantInfo: {

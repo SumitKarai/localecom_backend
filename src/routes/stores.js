@@ -22,7 +22,12 @@ router.post('/',
         location,
         logo,
         banner,
-        deliveryRadius
+        deliveryRadius,
+        theme,
+        tagline,
+        aboutUs,
+        services,
+        features
       } = req.body;
       
       // Check if user already has a store
@@ -31,7 +36,7 @@ router.post('/',
         return res.status(400).json({ error: 'User already has a store' });
       }
 
-      const store = new Store({
+      const storeData = {
         ownerId: req.user._id,
         name,
         description,
@@ -44,16 +49,44 @@ router.post('/',
         whatsapp,
         email: req.user.email,
         location,
-        logo,
-        banner,
         deliveryRadius: deliveryRadius || 5
-      });
+      };
 
+      // Add optional fields if provided
+      if (logo) storeData.logo = logo;
+      if (banner) storeData.banner = banner;
+      if (theme) storeData.theme = theme;
+      if (tagline) storeData.tagline = tagline;
+      if (aboutUs) storeData.aboutUs = aboutUs;
+      if (services && services.length > 0) storeData.services = services;
+      if (features && features.length > 0) storeData.features = features;
+
+      const store = new Store(storeData);
       await store.save();
+      
       res.status(201).json({ message: 'Store created successfully', store });
     } catch (error) {
       console.error('❌ Error creating store:', error);
-      res.status(500).json({ error: 'Failed to create store' });
+      res.status(500).json({ error: error.message || 'Failed to create store' });
+    }
+  }
+);
+
+// Get user's store (alternative endpoint)
+router.get('/',
+  passport.authenticate('jwt', { session: false }),
+  async (req, res) => {
+    try {
+      console.log('🔍 Fetching store for user:', req.user._id);
+      const store = await Store.findOne({ ownerId: req.user._id });
+      console.log('📦 Store found:', store ? 'Yes' : 'No');
+      if (!store) {
+        return res.status(404).json({ error: 'Store not found' });
+      }
+      res.json({ store });
+    } catch (error) {
+      console.error('❌ Error fetching store:', error);
+      res.status(500).json({ error: 'Failed to fetch store', details: error.message });
     }
   }
 );
@@ -100,8 +133,9 @@ router.post('/:storeId/products',
   passport.authenticate('jwt', { session: false }),
   async (req, res) => {
     try {
-      const { name, description, category, price, quantity, unit } = req.body;
+      const { name, description, categoryId, price, isAvailable, tags, images, brand } = req.body;
       const { storeId } = req.params;
+      const MasterProduct = require('../models/MasterProduct');
 
       // Verify store ownership
       const store = await Store.findOne({ _id: storeId, ownerId: req.user._id });
@@ -109,23 +143,122 @@ router.post('/:storeId/products',
         return res.status(403).json({ error: 'Store not found or access denied' });
       }
 
-      const product = new Product({
+      // Find or create MasterProduct
+      let masterProduct = await MasterProduct.findOne({ name: name.trim() });
+      
+      if (!masterProduct) {
+        // Create new master product
+        masterProduct = new MasterProduct({
+          name: name.trim(),
+          description,
+          categoryId,
+          tags: tags || [],
+          images: images || [],
+          brand
+        });
+        await masterProduct.save();
+        console.log(`✅ Created new MasterProduct: ${masterProduct.name}`);
+      } else {
+        console.log(`✅ Found existing MasterProduct: ${masterProduct.name}`);
+      }
+
+      // Check if this store already sells this product
+      const existingProduct = await Product.findOne({
         storeId,
-        name,
-        description,
-        category,
+        masterProductId: masterProduct._id
+      });
+
+      if (existingProduct) {
+        return res.status(400).json({ error: 'This product is already listed in your store' });
+      }
+
+      // Create store-specific product listing
+      const product = new Product({
+        masterProductId: masterProduct._id,
+        storeId,
         price,
-        inventory: {
-          quantity: quantity || 0,
-          unit: unit || 'piece'
+        availability: {
+          isAvailable: isAvailable !== undefined ? isAvailable : true
         }
       });
 
       await product.save();
-      res.status(201).json({ message: 'Product added successfully', product });
+      
+      // Populate the response
+      await product.populate('masterProductId');
+      
+      res.status(201).json({ 
+        message: 'Product added successfully', 
+        product,
+        masterProduct 
+      });
     } catch (error) {
       console.error('❌ Error adding product:', error);
-      res.status(500).json({ error: 'Failed to add product' });
+      res.status(500).json({ error: 'Failed to add product', details: error.message });
+    }
+  }
+);
+
+// Update product (e.g., availability, price)
+router.patch('/:storeId/products/:productId',
+  passport.authenticate('jwt', { session: false }),
+  async (req, res) => {
+    try {
+      const { storeId, productId } = req.params;
+      
+      // Verify store ownership
+      const store = await Store.findOne({ _id: storeId, ownerId: req.user._id });
+      if (!store) {
+        return res.status(403).json({ error: 'Store not found or access denied' });
+      }
+
+      // Update the product
+      const product = await Product.findOneAndUpdate(
+        { _id: productId, storeId },
+        req.body,
+        { new: true, runValidators: true }
+      ).populate('masterProductId');
+
+      if (!product) {
+        return res.status(404).json({ error: 'Product not found' });
+      }
+
+      res.json({ message: 'Product updated successfully', product });
+    } catch (error) {
+      console.error('❌ Error updating product:', error);
+      res.status(500).json({ error: 'Failed to update product' });
+    }
+  }
+);
+
+// Delete product
+router.delete('/:storeId/products/:productId',
+  passport.authenticate('jwt', { session: false }),
+  async (req, res) => {
+    try {
+      const { storeId, productId } = req.params;
+      
+      // Verify store ownership
+      const store = await Store.findOne({ _id: storeId, ownerId: req.user._id });
+      if (!store) {
+        return res.status(403).json({ error: 'Store not found or access denied' });
+      }
+
+      // Soft delete by setting isActive to false
+      const product = await Product.findOneAndUpdate(
+        { _id: productId, storeId },
+        { isActive: false },
+        { new: true }
+      );
+
+      if (!product) {
+        return res.status(404).json({ error: 'Product not found' });
+      }
+
+      res.json({ message: 'Product deleted successfully' });
+    } catch (error) {
+      console.error('❌ Error deleting product:', error);
+      res.status(500).json({ error: 'Failed to delete product' });
     }
   }
 );
@@ -137,6 +270,12 @@ router.get('/:storeId/products',
       const products = await Product.find({ 
         storeId: req.params.storeId,
         isActive: true 
+      }).populate({
+        path: 'masterProductId',
+        populate: {
+          path: 'categoryId',
+          model: 'ProductCategory'
+        }
       });
       res.json({ products });
     } catch (error) {
@@ -144,6 +283,7 @@ router.get('/:storeId/products',
     }
   }
 );
+
 
 // Get store categories
 router.get('/categories', async (req, res) => {
