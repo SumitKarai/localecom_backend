@@ -29,4 +29,31 @@ router.patch('/:masterProductId',
   }
 );
 
+// Search Master Products
+router.get('/', async (req, res) => {
+  try {
+    const { search } = req.query;
+    const query = { isActive: true };
+
+    if (search) {
+      query.$or = [
+        { name: new RegExp(search, 'i') },
+        { description: new RegExp(search, 'i') },
+        { tags: new RegExp(search, 'i') },
+        { brand: new RegExp(search, 'i') }
+      ];
+    }
+
+    const masterProducts = await MasterProduct.find(query)
+      .populate('categoryId')
+      .limit(20)
+      .sort({ name: 1 });
+
+    res.json({ masterProducts });
+  } catch (error) {
+    console.error('❌ Error searching master products:', error);
+    res.status(500).json({ error: 'Failed to search master products' });
+  }
+});
+
 module.exports = router;

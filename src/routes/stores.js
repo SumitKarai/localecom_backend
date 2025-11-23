@@ -60,6 +60,7 @@ router.post('/',
       if (aboutUs) storeData.aboutUs = aboutUs;
       if (services && services.length > 0) storeData.services = services;
       if (features && features.length > 0) storeData.features = features;
+      if (req.body.workingHours) storeData.workingHours = req.body.workingHours;
 
       const store = new Store(storeData);
       await store.save();
@@ -133,7 +134,7 @@ router.post('/:storeId/products',
   passport.authenticate('jwt', { session: false }),
   async (req, res) => {
     try {
-      const { name, description, categoryId, price, isAvailable, tags, images, brand } = req.body;
+      const { name, description, categoryId, price, isAvailable, tags, images, brand, masterProductId } = req.body;
       const { storeId } = req.params;
       const MasterProduct = require('../models/MasterProduct');
 
@@ -143,23 +144,33 @@ router.post('/:storeId/products',
         return res.status(403).json({ error: 'Store not found or access denied' });
       }
 
-      // Find or create MasterProduct
-      let masterProduct = await MasterProduct.findOne({ name: name.trim() });
-      
-      if (!masterProduct) {
-        // Create new master product
-        masterProduct = new MasterProduct({
-          name: name.trim(),
-          description,
-          categoryId,
-          tags: tags || [],
-          images: images || [],
-          brand
-        });
-        await masterProduct.save();
-        console.log(`✅ Created new MasterProduct: ${masterProduct.name}`);
+      let masterProduct;
+
+      if (masterProductId) {
+        masterProduct = await MasterProduct.findById(masterProductId);
+        if (!masterProduct) {
+          return res.status(404).json({ error: 'Selected master product not found' });
+        }
+        console.log(`✅ Using provided MasterProduct: ${masterProduct.name}`);
       } else {
-        console.log(`✅ Found existing MasterProduct: ${masterProduct.name}`);
+        // Find or create MasterProduct
+        masterProduct = await MasterProduct.findOne({ name: name.trim() });
+        
+        if (!masterProduct) {
+          // Create new master product
+          masterProduct = new MasterProduct({
+            name: name.trim(),
+            description,
+            categoryId,
+            tags: tags || [],
+            images: images || [],
+            brand
+          });
+          await masterProduct.save();
+          console.log(`✅ Created new MasterProduct: ${masterProduct.name}`);
+        } else {
+          console.log(`✅ Found existing MasterProduct: ${masterProduct.name}`);
+        }
       }
 
       // Check if this store already sells this product
