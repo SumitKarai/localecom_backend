@@ -12,6 +12,10 @@ global.routeErrors = [];
 // Connect to MongoDB
 connectDB();
 
+// Start subscription expiry background job
+const { startSubscriptionExpiryJob } = require('./jobs/subscriptionExpiry');
+startSubscriptionExpiryJob();
+
 // Middleware
 const allowedOrigins = [
   'http://localhost:3000',

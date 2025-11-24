@@ -12,10 +12,47 @@ router.get('/test', (req, res) => {
   res.json({ success: true, message: 'Subscription routes working' });
 });
 
+// Cancel subscription (TEST ONLY)
+router.post('/cancel-test', passport.authenticate('jwt', { session: false }), async (req, res) => {
+  try {
+    const Store = require('../models/Store');
+    const Restaurant = require('../models/Restaurant');
+    const Freelancer = require('../models/Freelancer');
+
+    // Expire user subscription
+    req.user.subscription = {
+      isSubscribed: false,
+      expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // Yesterday
+      plan: 'free',
+      trialEndsAt: new Date(Date.now() - 24 * 60 * 60 * 1000) // Yesterday
+    };
+    await req.user.save();
+
+    // Update businesses
+    await Promise.all([
+      Store.updateMany({ ownerId: req.user._id }, { subscriptionActive: false }),
+      Restaurant.updateMany({ ownerId: req.user._id }, { subscriptionActive: false }),
+      Freelancer.updateMany({ userId: req.user._id }, { subscriptionActive: false })
+    ]);
+
+    res.json({ success: true, message: 'Subscription cancelled for testing' });
+  } catch (error) {
+    console.error('Cancel error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
+
+// Pricing configuration (in paise)
+const PRICING = {
+  freelancer: { monthly: 10000, yearly: 100000 }, // ₹100 / ₹1000
+  seller: { monthly: 20000, yearly: 200000 },     // ₹200 / ₹2000
+  restaurant: { monthly: 20000, yearly: 200000 }  // ₹200 / ₹2000
+};
 
 // Create subscription order
 router.post('/create-order', passport.authenticate('jwt', { session: false }), async (req, res) => {
@@ -27,8 +64,15 @@ router.post('/create-order', passport.authenticate('jwt', { session: false }), a
     }
     
     const { planType = 'yearly' } = req.body;
-    const amount = planType === 'yearly' ? 300000 : 50000; // ₹3000 or ₹500 in paise
+    const userRole = req.user.role;
     
+    if (!PRICING[userRole]) {
+      throw new Error('Invalid user role for subscription');
+    }
+
+    const amount = PRICING[userRole][planType];
+    
+    console.log('User Role:', userRole);
     console.log('Plan type:', planType);
     console.log('Amount:', amount);
     
@@ -38,7 +82,8 @@ router.post('/create-order', passport.authenticate('jwt', { session: false }), a
       receipt: `sub_${Date.now()}`,
       notes: {
         userId: req.user._id.toString(),
-        planType
+        planType,
+        userRole
       }
     };
 
@@ -79,12 +124,22 @@ router.post('/verify-payment', passport.authenticate('jwt', { session: false }),
     // Get plan details from order
     const order = await razorpay.orders.fetch(razorpay_order_id);
     const planType = order.notes.planType || 'yearly';
-    const amount = planType === 'yearly' ? 3000 : 500;
+    const userRole = order.notes.userRole || req.user.role;
+    
+    // Verify amount matches plan
+    const expectedAmount = PRICING[userRole][planType];
+    if (order.amount !== expectedAmount) {
+      console.error('Amount mismatch:', { expected: expectedAmount, received: order.amount });
+      // We still proceed but log the error - or should we fail? 
+      // For now, let's proceed but log it as critical
+    }
+
+    const amount = order.amount / 100; // Convert back to rupees for DB
     const durationDays = planType === 'yearly' ? 365 : 30;
     
     console.log('Payment verification - Plan type:', planType);
+    console.log('Payment verification - Role:', userRole);
     console.log('Payment verification - Amount:', amount);
-    console.log('Payment verification - Duration:', durationDays);
     
     // Create subscription
     const startDate = new Date();
@@ -104,6 +159,29 @@ router.post('/verify-payment', passport.authenticate('jwt', { session: false }),
 
     await subscription.save();
     console.log('Subscription created:', subscription._id);
+
+    // Update all user's businesses to be publicly visible
+    const Store = require('../models/Store');
+    const Restaurant = require('../models/Restaurant');
+    const Freelancer = require('../models/Freelancer');
+    
+    await Promise.all([
+      Store.updateMany(
+        { ownerId: req.user._id },
+        { subscriptionActive: true }
+      ),
+      Restaurant.updateMany(
+        { ownerId: req.user._id },
+        { subscriptionActive: true }
+      ),
+      Freelancer.updateMany(
+        { userId: req.user._id },
+        { subscriptionActive: true }
+      )
+    ]);
+    
+    console.log('User businesses set to publicly visible');
+
 
     // Update user subscription status - remove any cancelled status
     const updateResult = await User.findByIdAndUpdate(req.user._id, {

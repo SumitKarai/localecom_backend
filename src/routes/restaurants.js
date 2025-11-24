@@ -133,6 +133,7 @@ router.get('/search', async (req, res) => {
       
       const query = {
         isActive: true,
+         subscriptionActive: true,
         location: {
           $near: {
             $geometry: {
@@ -154,7 +155,7 @@ router.get('/search', async (req, res) => {
         
       actualRadius = 'unlimited';
     } else {
-      const query = { isActive: true };
+      const query = { isActive: true, subscriptionActive: true };
       if (city) query.city = city;
       if (state) query.state = state;
       if (cuisineType) query.cuisineType = { $in: [cuisineType] };
@@ -169,6 +170,34 @@ router.get('/search', async (req, res) => {
   } catch (error) {
     console.error('Error fetching restaurants:', error);
     res.status(500).json({ error: 'Failed to fetch restaurants' });
+  }
+});
+
+// Get single restaurant by ID (public access)
+router.get('/:id', async (req, res) => {
+  try {
+    const restaurant = await Restaurant.findById(req.params.id);
+    
+    if (!restaurant) {
+      return res.status(404).json({ error: 'Restaurant not found' });
+    }
+
+    // Check if restaurant has active subscription
+    if (!restaurant.subscriptionActive) {
+      return res.json({ 
+        restaurant: {
+          _id: restaurant._id,
+          name: restaurant.name,
+          subscriptionActive: false
+        },
+        subscriptionExpired: true,
+        message: 'This restaurant is temporarily unavailable due to expired subscription'
+      });
+    }
+    
+    res.json({ restaurant, subscriptionExpired: false });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch restaurant' });
   }
 });
 

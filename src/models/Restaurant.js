@@ -131,6 +131,11 @@ const restaurantSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  subscriptionActive: {
+    type: Boolean,
+    default: true,
+    index: true
+  },
   rating: {
     type: Number,
     default: 0

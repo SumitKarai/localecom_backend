@@ -70,6 +70,7 @@ router.get('/:freelancerId', async (req, res) => {
   try {
     const { freelancerId } = req.params;
     
+    // Find freelancer without filtering by subscriptionActive initially
     const freelancer = await Freelancer.findOne({
       _id: freelancerId,
       isActive: true
@@ -79,7 +80,20 @@ router.get('/:freelancerId', async (req, res) => {
       return res.status(404).json({ error: 'Freelancer not found' });
     }
 
-    res.json({ freelancer });
+    // Check if freelancer has active subscription
+    if (!freelancer.subscriptionActive) {
+      return res.json({ 
+        freelancer: {
+          _id: freelancer._id,
+          profileName: freelancer.profileName,
+          subscriptionActive: false
+        },
+        subscriptionExpired: true,
+        message: 'This freelancer profile is temporarily unavailable due to expired subscription'
+      });
+    }
+
+    res.json({ freelancer, subscriptionExpired: false });
   } catch (error) {
     console.error('❌ Error fetching freelancer profile:', error);
     res.status(500).json({ error: 'Failed to fetch freelancer profile' });
@@ -101,6 +115,7 @@ router.get('/search', async (req, res) => {
       for (const distance of distances) {
         const query = {
           isActive: true,
+          subscriptionActive: true,
           location: {
             $near: {
               $geometry: {
@@ -126,7 +141,7 @@ router.get('/search', async (req, res) => {
         if (freelancers.length >= 20) break;
       }
     } else {
-      const query = { isActive: true };
+      const query = { isActive: true, subscriptionActive: true };
       if (skills) query.skills = { $in: skills.split(',') };
       if (availability) query.availability = availability;
       if (category) query.category = category;

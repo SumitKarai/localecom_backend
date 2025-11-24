@@ -128,6 +128,11 @@ const freelancerSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  subscriptionActive: {
+    type: Boolean,
+    default: true,
+    index: true
+  },
   isVerified: {
     type: Boolean,
     default: false

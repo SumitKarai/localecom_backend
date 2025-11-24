@@ -127,20 +127,33 @@ router.get('/:id', async (req, res) => {
   try {
     const Review = require('../models/Review');
     
-    const [store, reviews] = await Promise.all([
-      Store.findById(req.params.id),
-      Review.find({ 
-        targetType: 'Store',
-        targetId: req.params.id,
-        isApproved: true 
-      }).sort({ rating: -1, createdAt: -1 }).limit(10)
-    ]);
+    const store = await Store.findById(req.params.id);
     
     if (!store) {
       return res.status(404).json({ error: 'Store not found' });
     }
+
+    // Check if store has active subscription
+    if (!store.subscriptionActive) {
+      return res.json({ 
+        store: {
+          _id: store._id,
+          name: store.name,
+          subscriptionActive: false
+        },
+        subscriptionExpired: true,
+        message: 'This business is temporarily unavailable due to expired subscription',
+        reviews: []
+      });
+    }
     
-    res.json({ store, reviews });
+    const reviews = await Review.find({ 
+      targetType: 'Store',
+      targetId: req.params.id,
+      isApproved: true 
+    }).sort({ rating: -1, createdAt: -1 }).limit(10);
+    
+    res.json({ store, reviews, subscriptionExpired: false });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
