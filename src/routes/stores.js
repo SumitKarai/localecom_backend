@@ -449,6 +449,10 @@ router.get('/', async (req, res) => {
     let stores = [];
     let actualRadius = null;
     
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
     // GPS-based search with progressive expansion
     if (lat && lng) {
       const latitude = parseFloat(lat);
@@ -475,12 +479,17 @@ router.get('/', async (req, res) => {
         if (businessType) query.businessType = businessType;
         if (search) query.name = new RegExp(search, 'i');
         
-        stores = await Store.find(query)
+        const currentStores = await Store.find(query)
           .select('name description category address city state phone whatsapp location rating totalReviews')
-          .limit(100);
+          .skip(skip)
+          .limit(limit);
           
-        actualRadius = distance;
-        if (stores.length >= 20) break; // Stop when we have enough stores
+        if (currentStores.length > stores.length) {
+           stores = currentStores;
+           actualRadius = distance;
+        }
+
+        if (stores.length === limit) break; // Stop when we have a full page
       }
     }
     // City/State-based search
@@ -494,7 +503,8 @@ router.get('/', async (req, res) => {
       
       stores = await Store.find(query)
         .select('name description category address city state phone whatsapp location rating totalReviews')
-        .limit(100);
+        .skip(skip)
+        .limit(limit);
     }
     
     res.json({ stores, actualRadius });
