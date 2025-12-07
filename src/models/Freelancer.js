@@ -12,7 +12,7 @@ const freelancerSchema = new mongoose.Schema({
   },
   title: {
     type: String,
-    required: true // e.g., "Web Developer", "Graphic Designer"
+    required: true // e.g., "Web Developer", "Plumber", "Dentist"
   },
   description: {
     type: String,
@@ -21,7 +21,53 @@ const freelancerSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['Web Development', 'Mobile Development', 'Graphic Design', 'Digital Marketing', 'Content Writing', 'Photography', 'Video Editing', 'Tutoring', 'Consulting', 'Home Services', 'Beauty & Wellness', 'Fitness Training', 'Music & Arts', 'Legal Services', 'Accounting', 'Other']
+    enum: [
+      // Professional Services
+      'Web Development', 
+      'Mobile Development', 
+      'Graphic Design', 
+      'Digital Marketing', 
+      'Content Writing', 
+      'Photography', 
+      'Video Editing', 
+      'Tutoring', 
+      'Consulting', 
+      'Legal Services', 
+      'Accounting',
+      
+      // Healthcare & Wellness
+      'Healthcare & Medical',
+      'Beauty & Wellness', 
+      'Fitness Training',
+      
+      // Blue Collar & Gig Workers
+      'Plumbing',
+      'Electrical Work',
+      'Carpentry',
+      'Painting & Decoration',
+      'Cleaning Services',
+      'Pest Control',
+      'AC & Appliance Repair',
+      'Vehicle Repair & Maintenance',
+      'Construction & Masonry',
+      'Gardening & Landscaping',
+      
+      // Home & Personal Services
+      'Home Services',
+      'Delivery & Logistics',
+      'Driver & Transportation',
+      'Security Services',
+      'Catering & Cooking',
+      'Tailoring & Alterations',
+      'Laundry & Dry Cleaning',
+      
+      // Arts & Entertainment
+      'Music & Arts',
+      'Event Planning',
+      
+      // Other
+      'Other'
+    ]
   },
   
   // Location (can work remotely or locally)
@@ -63,8 +109,7 @@ const freelancerSchema = new mongoose.Schema({
   
   // Professional information
   skills: [{
-    type: String,
-    required: true
+    type: String
   }],
   experience: {
     type: String,
@@ -78,7 +123,7 @@ const freelancerSchema = new mongoose.Schema({
   // Pricing and availability
   hourlyRate: {
     type: Number,
-    required: true
+    required: false // Optional
   },
   currency: {
     type: String,
@@ -116,12 +161,23 @@ const freelancerSchema = new mongoose.Schema({
     website: String
   },
   
-  // Service details
+  // Service details with pricing (can be added after profile creation, like products in a store)
   serviceTypes: [{
-    name: String,
+    name: {
+      type: String,
+      required: true
+    },
     description: String,
-    price: Number,
-    duration: String // e.g., "2-3 days", "1 week"
+    price: {
+      type: Number,
+      required: true
+    },
+    duration: String, // e.g., "30 minutes", "2-3 days", "1 week"
+    unit: {
+      type: String,
+      enum: ['per service', 'per hour', 'per day', 'per project', 'per visit'],
+      default: 'per service'
+    }
   }],
   
   isActive: {

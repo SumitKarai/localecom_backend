@@ -50,7 +50,8 @@ router.put('/role',
       const { role } = req.body;
 
       // Validate role
-      const validRoles = ['customer', 'seller', 'freelancer', 'restaurant'];
+      // In production, 'admin' should not be switchable via API, but allowed here for dev/testing
+      const validRoles = ['customer', 'seller', 'freelancer', 'restaurant', 'writer', 'admin'];
       if (!validRoles.includes(role)) {
         return res.status(400).json({ error: 'Invalid role' });
       }

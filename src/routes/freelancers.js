@@ -65,42 +65,66 @@ router.get('/my-profile',
   }
 );
 
-// Get freelancer profile by ID
-router.get('/:freelancerId', async (req, res) => {
+// Get freelancer categories (must be before /:freelancerId)
+router.get('/categories', async (req, res) => {
   try {
-    const { freelancerId } = req.params;
+    const categories = {
+      'Professional Services': [
+        'Web Development',
+        'Mobile Development',
+        'Graphic Design',
+        'Digital Marketing',
+        'Content Writing',
+        'Photography',
+        'Video Editing',
+        'Tutoring',
+        'Consulting',
+        'Legal Services',
+        'Accounting'
+      ],
+      'Healthcare & Wellness': [
+        'Healthcare & Medical',
+        'Beauty & Wellness',
+        'Fitness Training'
+      ],
+      'Blue Collar & Gig Workers': [
+        'Plumbing',
+        'Electrical Work',
+        'Carpentry',
+        'Painting & Decoration',
+        'Cleaning Services',
+        'Pest Control',
+        'AC & Appliance Repair',
+        'Vehicle Repair & Maintenance',
+        'Construction & Masonry',
+        'Gardening & Landscaping'
+      ],
+      'Home & Personal Services': [
+        'Home Services',
+        'Delivery & Logistics',
+        'Driver & Transportation',
+        'Security Services',
+        'Catering & Cooking',
+        'Tailoring & Alterations',
+        'Laundry & Dry Cleaning'
+      ],
+      'Arts & Entertainment': [
+        'Music & Arts',
+        'Event Planning'
+      ],
+      'Other': ['Other']
+    };
     
-    // Find freelancer without filtering by subscriptionActive initially
-    const freelancer = await Freelancer.findOne({
-      _id: freelancerId,
-      isActive: true
-    });
-
-    if (!freelancer) {
-      return res.status(404).json({ error: 'Freelancer not found' });
-    }
-
-    // Check if freelancer has active subscription
-    if (!freelancer.subscriptionActive) {
-      return res.json({ 
-        freelancer: {
-          _id: freelancer._id,
-          profileName: freelancer.profileName,
-          subscriptionActive: false
-        },
-        subscriptionExpired: true,
-        message: 'This freelancer profile is temporarily unavailable due to expired subscription'
-      });
-    }
-
-    res.json({ freelancer, subscriptionExpired: false });
+    // Also provide a flat list for backward compatibility
+    const flatCategories = Object.values(categories).flat();
+    
+    res.json({ categories, flatCategories });
   } catch (error) {
-    console.error('❌ Error fetching freelancer profile:', error);
-    res.status(500).json({ error: 'Failed to fetch freelancer profile' });
+    res.status(500).json({ error: 'Failed to fetch categories' });
   }
 });
 
-// Search freelancers
+// Search freelancers (must be before /:freelancerId)
 router.get('/search', async (req, res) => {
   try {
     const { lat, lng, skills, city, state, availability, category } = req.query;
@@ -134,7 +158,7 @@ router.get('/search', async (req, res) => {
         if (state) query.state = state;
         
         freelancers = await Freelancer.find(query)
-          .select('profileName title description category skills hourlyRate location city state rating totalReviews availability')
+          .select('profileName title description category skills hourlyRate location city state rating totalReviews availability serviceTypes')
           .limit(100);
           
         actualRadius = distance;
@@ -149,7 +173,7 @@ router.get('/search', async (req, res) => {
       if (state) query.state = state;
       
       freelancers = await Freelancer.find(query)
-        .select('profileName title description category skills hourlyRate location city state rating totalReviews availability')
+        .select('profileName title description category skills hourlyRate location city state rating totalReviews availability serviceTypes')
         .limit(100);
     }
 
@@ -160,30 +184,38 @@ router.get('/search', async (req, res) => {
   }
 });
 
-// Get freelancer categories
-router.get('/categories', async (req, res) => {
+// Get freelancer profile by ID (must be last to avoid matching other routes)
+router.get('/:freelancerId', async (req, res) => {
   try {
-    const categories = [
-      'Web Development',
-      'Mobile Development',
-      'Graphic Design',
-      'Digital Marketing',
-      'Content Writing',
-      'Photography',
-      'Video Editing',
-      'Tutoring',
-      'Consulting',
-      'Home Services',
-      'Beauty & Wellness',
-      'Fitness Training',
-      'Music & Arts',
-      'Legal Services',
-      'Accounting',
-      'Other'
-    ];
-    res.json({ categories });
+    const { freelancerId } = req.params;
+    
+    // Find freelancer without filtering by subscriptionActive initially
+    const freelancer = await Freelancer.findOne({
+      _id: freelancerId,
+      isActive: true
+    });
+
+    if (!freelancer) {
+      return res.status(404).json({ error: 'Freelancer not found' });
+    }
+
+    // Check if freelancer has active subscription
+    if (!freelancer.subscriptionActive) {
+      return res.json({ 
+        freelancer: {
+          _id: freelancer._id,
+          profileName: freelancer.profileName,
+          subscriptionActive: false
+        },
+        subscriptionExpired: true,
+        message: 'This freelancer profile is temporarily unavailable due to expired subscription'
+      });
+    }
+
+    res.json({ freelancer, subscriptionExpired: false });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch categories' });
+    console.error('❌ Error fetching freelancer profile:', error);
+    res.status(500).json({ error: 'Failed to fetch freelancer profile' });
   }
 });
 

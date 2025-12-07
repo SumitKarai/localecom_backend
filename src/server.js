@@ -84,6 +84,8 @@ try {
   app.use('/api/reviews', require('./routes/reviews'));
   app.use('/api/upload', require('./routes/upload'));
   app.use('/api/subscription', require('./routes/subscription'));
+  app.use('/api/blog', require('./routes/blog'));
+  console.log('✅ Blog routes loaded successfully');
 } catch (error) {
   console.error('❌ Error loading routes:', error);
   global.routeErrors.push({ route: 'general', error: error.message });
