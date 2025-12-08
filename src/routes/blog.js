@@ -257,21 +257,33 @@ router.post('/',
   isWriter,
   async (req, res) => {
     try {
-      const { title, content, excerpt, featuredImage, category, tags, metaTitle, metaDescription, status } = req.body;
+      const { title, content, excerpt, featuredImage, category, tags, metaTitle, metaDescription, status, slug: frontendSlug } = req.body;
       
-      // Generate unique slug
-      let baseSlug = title
-        .toLowerCase()
-        .replace(/[^a-z0-9\u0900-\u097F\s-]/g, '') // Allow English + Hindi + Numbers + Space + Hyphen
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim();
+      // Use frontend slug or generate from title
+      let baseSlug;
+      if (frontendSlug) {
+        // Use frontend provided slug (cleaned)
+        baseSlug = frontendSlug
+          .toLowerCase()
+          .replace(/[^a-z0-9-]/g, '') // Only allow a-z, 0-9, hyphens
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '')
+          .trim();
+      } else {
+        // Fallback: generate from title
+        baseSlug = title
+          .toLowerCase()
+          .replace(/[^a-z0-9\u0900-\u097F\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .trim();
+      }
       
+      // Ensure uniqueness with random numbers
       let slug = baseSlug;
-      let counter = 1;
       while (await BlogPost.findOne({ slug })) {
-        slug = `${baseSlug}-${counter}`;
-        counter++;
+        const randomNum = Math.floor(Math.random() * 9000) + 1000; // 4-digit random number
+        slug = `${baseSlug}-${randomNum}`;
       }
       
       const post = new BlogPost({
